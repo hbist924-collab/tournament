@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #2c3e50; --gold: #f1c40f; --danger: #e74c3c; --success: #27ae60; }
+        body { font-family: sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 70px; overflow-x: hidden; }
+        
+        /* Loading Overlay */
+        #loadingOverlay {
+            position: fixed; inset: 0; background: white; z-index: 9999;
+            display: flex; justify-content: center; align-items: center; font-weight: bold;
+        }
+
+        .header { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .balance-box { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--gold); }
+        .customer-btn { font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
+        .game-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        .game-card img { width: 100%; height: 100px; object-fit: cover; }
+        .game-card h3 { margin: 8px 0; font-size: 0.9rem; }
+        .play-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 5px; margin-bottom: 10px; cursor: pointer; width: 80%; font-weight: bold; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 85%; padding: 20px; border-radius: 15px; text-align: center; position: relative; }
+        .support-links a { display: block; padding: 12px; margin: 10px 0; text-decoration: none; color: white; border-radius: 8px; font-weight: bold; }
+        .wheel-outer { position: relative; width: 220px; height: 220px; margin: 20px auto; }
+        .wheel-container { width: 100%; height: 100%; border: 8px solid #333; border-radius: 50%; position: relative; overflow: hidden; background: #fff; transform: rotate(0deg); }
+        .wheel-img { width: 100%; height: 100%; position: absolute; border-radius: 50%; background: conic-gradient(#e74c3c 0deg 60deg, #f1c40f 60deg 120deg, #27ae60 120deg 180deg, #2980b9 180deg 240deg, #8e44ad 240deg 300deg, #e67e22 300deg 360deg); }
+        .number { position: absolute; width: 100%; height: 100%; text-align: center; color: white; font-weight: bold; font-size: 1.2rem; padding-top: 10px; transform-origin: 50% 50%; }
+        .n1 { transform: rotate(30deg); } .n2 { transform: rotate(90deg); } .n3 { transform: rotate(150deg); } .n4 { transform: rotate(210deg); } .n5 { transform: rotate(270deg); } .n6 { transform: rotate(330deg); }
+        .needle { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #333; z-index: 2050; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
+        .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        input { width: 90%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div><i class="fas fa-spinner fa-spin"></i> Loading Dashboard...</div>
+    </div>
+
+    <header class="header">
+        <div class="customer-btn" onclick="toggleModal('supportModal')">
+            <i class="fas fa-headset"></i> Support
+        </div>
+        <div class="balance-box">
+            <i class="fas fa-wallet" style="color: var(--gold);"></i> रू <span id="userBalance">0.00</span>
+        </div>
+    </header>
+
+    <main class="game-grid">
+        <div class="game-card"><img src="https://i.ibb.co/GvfdCh8y/images.jpg"><h3>Ludo King</h3><button class="play-btn" onclick="openMatchModal('Ludo King')">Play Now</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/chgx7WP7/download.jpg"><h3>PUBG</h3><button class="play-btn" onclick="openMatchModal('PUBG')">Play Now</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/HT41RmqB/images-3.jpg"><h3>Free Fire</h3><button class="play-btn" onclick="openMatchModal('Free Fire')">Play Now</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/YBnVSZV1/download-1.jpg"><h3>Carrom</h3><button class="play-btn" onclick="openMatchModal('Carrom')">Play Now</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/397kdSqt/1775469473110.png"><h3>Spin</h3><button class="play-btn" onclick="openSpinModal('normal')">Spin (रू 5)</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/cchmBptQ/1775469646433.png"><h3>Big Spin</h3><button class="play-btn" onclick="openSpinModal('big')">Big Spin (रू 10)</button></div>
+    </main>
+
+    <div id="supportModal" class="modal">
+        <div class="modal-content">
+            <h3>Customer Service</h3>
+            <div class="support-links">
+                <a href="https://wa.me/9748253225" target="_blank" style="background: #25D366;"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                <a href="https://t.me/yourusername" target="_blank" style="background: #0088cc;"><i class="fab fa-telegram"></i> Telegram</a>
+                <button onclick="toggleModal('supportModal')" class="play-btn" style="background:#555; width: 100%;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="matchModal" class="modal">
+        <div class="modal-content">
+            <h3 id="matchTitle">Create Match</h3>
+            <input type="number" id="entryAmount" placeholder="Entry Amount (Min 10)">
+            <input type="text" id="roomCode" placeholder="Room Code">
+            <p style="font-size: 0.75rem; color: #e74c3c; font-weight: bold;">Admin Commission: 15%</p>
+            <button id="createMatchBtn" class="play-btn" style="background: var(--success); width: 100%;">Create Match</button>
+            <button onclick="toggleModal('matchModal')" class="play-btn" style="background:#555; width: 100%; margin-top: 8px;">Cancel</button>
+        </div>
+    </div>
+
+    <div id="spinModal" class="modal">
+        <div class="modal-content">
+            <h3 id="spinDisplayTitle" style="margin-top: 0;">Lucky Spin</h3>
+            <div class="wheel-outer">
+                <div class="needle"></div>
+                <div class="wheel-container" id="wheelWrapper">
+                    <div class="wheel-img"></div>
+                    <div class="number n1">1</div><div class="number n2">2</div><div class="number n3">5</div>
+                    <div class="number n4">0</div><div class="number n5">10</div><div class="number n6">20</div>
+                </div>
+            </div>
+            <div id="spinResultText" style="margin: 15px; font-size: 1.3rem; font-weight: bold; color: var(--success); height: 30px;"></div>
+            <button id="spinStartBtn" class="play-btn" style="background: var(--success); width: 100%; font-size: 1.1rem;">START SPIN</button>
+            <button id="spinCloseBtn" onclick="toggleModal('spinModal')" class="play-btn" style="background:#555; width: 100%; margin-top: 8px;">Close</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item active"><i class="fas fa-home"></i><br>Home</a>
+        <a href="matches.html" class="nav-item"><i class="fas fa-gamepad"></i><br>Matches</a>
+        <a href="notice.html" class="nav-item"><i class="fas fa-bullhorn"></i><br>Notice</a>
+        <a href="profile.html" class="nav-item"><i class="fas fa-user"></i><br>Profile</a>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, onValue, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // अपडेटेड नयाँ API Key
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
+            authDomain: "ludo-king-b051a.firebaseapp.com",
+            projectId: "ludo-king-b051a",
+            storageBucket: "ludo-king-b051a.firebasestorage.app",
+            messagingSenderId: "311482948017",
+            appId: "1:311482948017:web:4a986ca1416b6e456e0590"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let currentBalance = 0;
+        let spinning = false;
+        let totalRotation = 0;
+        let selectedGame = "";
+
+        window.toggleModal = (id) => {
+            if(spinning) return;
+            const m = document.getElementById(id);
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        window.openMatchModal = (game) => {
+            selectedGame = game;
+            document.getElementById('matchTitle').innerText = game + " Match";
+            toggleModal('matchModal');
+        }
+
+        window.openSpinModal = (type) => {
+            const fee = (type === 'normal') ? 5 : 10;
+            document.getElementById('spinDisplayTitle').innerText = (type === 'normal') ? "Normal Spin (रू 5)" : "Big Spin (रू 10)";
+            document.getElementById('spinResultText').innerText = "";
+            document.getElementById('spinStartBtn').onclick = () => startSpinProcess(type, fee);
+            toggleModal('spinModal');
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            const loader = document.getElementById('loadingOverlay');
+            if (user) {
+                loader.style.display = 'none'; // लगइन भएपछि लोडर हटाउने
+                const userRef = ref(db, 'users/' + user.uid);
+                onValue(userRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        currentBalance = data.balance || 0;
+                        document.getElementById('userBalance').innerText = currentBalance.toFixed(2);
+                    }
+                });
+
+                document.getElementById('createMatchBtn').onclick = () => {
+                    const amt = parseFloat(document.getElementById('entryAmount').value);
+                    const code = document.getElementById('roomCode').value;
+                    if (amt < 10 || isNaN(amt)) return alert("Min रू 10!");
+                    if (!code) return alert("Room Code required!");
+                    if (currentBalance < amt) return alert("Insufficient balance!");
+
+                    const newMatchKey = push(ref(db, 'matches')).key;
+                    const matchData = {
+                        game: selectedGame,
+                        entry: amt,
+                        prize: parseFloat((amt * 1.85).toFixed(2)),
+                        roomCode: code,
+                        creatorId: user.uid,
+                        status: 'open',
+                        time: Date.now()
+                    };
+
+                    const updates = {};
+                    updates['/matches/' + newMatchKey] = matchData;
+                    updates['/users/' + user.uid + '/balance'] = currentBalance - amt;
+
+                    update(ref(db), updates).then(() => {
+                        alert("Match Created Successfully!");
+                        document.getElementById('entryAmount').value = "";
+                        document.getElementById('roomCode').value = "";
+                        toggleModal('matchModal');
+                    }).catch(err => alert("Error: " + err.message));
+                };
+            } else {
+                window.location.href = "index.html"; // लगइन नभएमा होमपेजमा पठाउने
+            }
+        });
+
+        async function startSpinProcess(type, fee) {
+            if(spinning) return;
+            if(currentBalance < fee) return alert("यो खेल्न ब्यालेन्स पुगेन!");
+            
+            spinning = true;
+            const user = auth.currentUser;
+            const wheel = document.getElementById('wheelWrapper');
+            const btn = document.getElementById('spinStartBtn');
+            const closeBtn = document.getElementById('spinCloseBtn');
+            
+            await update(ref(db, 'users/' + user.uid), { balance: currentBalance - fee });
+
+            btn.style.visibility = "hidden";
+            closeBtn.style.visibility = "hidden";
+            document.getElementById('spinResultText').innerText = "घुम्दैछ...";
+
+            const addedRotation = Math.floor(Math.random() * 360) + 2160; 
+            totalRotation += addedRotation; 
+            wheel.style.transition = "transform 4s cubic-bezier(0.15, 0, 0.15, 1)";
+            wheel.style.transform = `rotate(${totalRotation}deg)`;
+
+            setTimeout(() => {
+                let win = 0;
+                const prizes = [1, 2, 5, 0, 10, 20];
+                win = prizes[Math.floor(Math.random() * prizes.length)];
+
+                update(ref(db, 'users/' + user.uid), { balance: (currentBalance - fee) + win });
+                document.getElementById('spinResultText').innerText = "जित: रू " + win;
+                
+                spinning = false;
+                btn.style.visibility = "visible";
+                closeBtn.style.visibility = "visible";
+                btn.innerText = "फेरि खेल्नुहोस्";
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

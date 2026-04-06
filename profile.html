@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #2c3e50; --gold: #f1c40f; --success: #27ae60; --danger: #e74c3c; --blue: #3498db; }
+        body { font-family: sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 80px; }
+        .profile-header { background: var(--primary); color: white; padding: 30px 15px; text-align: center; border-radius: 0 0 25px 25px; position: relative; }
+        .user-img-container { position: relative; display: inline-block; }
+        .user-img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--gold); margin-bottom: 10px; object-fit: cover; }
+        .edit-img-icon { position: absolute; bottom: 10px; right: 0; background: var(--gold); color: #000; padding: 5px; border-radius: 50%; font-size: 0.7rem; cursor: pointer; }
+        .user-name { font-size: 1.2rem; font-weight: bold; margin: 5px 0; }
+        
+        .uid-container { font-size: 0.8rem; opacity: 0.9; background: rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 20px; cursor: pointer; margin-top: 5px; transition: 0.3s; }
+        .uid-container:active { background: rgba(255,255,255,0.3); }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; margin-top: -20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .stat-card i { color: var(--gold); margin-bottom: 5px; }
+        .stat-val { display: block; font-weight: bold; font-size: 1.1rem; }
+        
+        .action-container { display: flex; justify-content: space-between; padding: 0 15px; margin-top: 10px; }
+        .btn-main { width: 48%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; }
+        .btn-deposit { background: var(--success); }
+        .btn-withdraw { background: var(--blue); }
+        
+        .menu-list { background: white; margin: 20px 15px; border-radius: 12px; overflow: hidden; }
+        .menu-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; color: #333; text-decoration: none; cursor: pointer; }
+        
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; padding: 20px; border-radius: 15px; text-align: center; max-height: 85vh; overflow-y: auto; }
+        
+        .qr-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 15px 0; padding-bottom: 10px; }
+        .qr-card { min-width: 100%; scroll-snap-align: center; }
+        .qr-card img { width: 180px; height: 180px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 8px; }
+        .btn-download { display: inline-block; background: #eee; color: #333; padding: 6px 12px; border-radius: 5px; text-decoration: none; font-size: 0.75rem; border: 1px solid #ccc; margin-bottom: 10px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; }
+        th { background: #f8f9fa; padding: 10px; border-bottom: 2px solid #ddd; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        .status-p { color: #f39c12; font-weight: bold; }
+        input, select { width: 95%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
+        .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="profile-header">
+        <div class="user-img-container">
+            <img src="https://via.placeholder.com/100" class="user-img" id="displayPic">
+            <label for="imgUpload" class="edit-img-icon"><i class="fas fa-camera"></i></label>
+            <input type="file" id="imgUpload" accept="image/*" style="display:none;">
+        </div>
+        <div class="user-name" id="displayName">Loading...</div>
+        <div class="uid-container" onclick="copyUID()">
+            <span>UID: <span id="displayID">-------</span></span>
+            <i class="far fa-copy"></i>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <i class="fas fa-users"></i>
+            <span class="stat-val" id="referCount">0</span>
+            <small>Total Referral</small>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-wallet"></i>
+            <span class="stat-val" id="referBalance">रू 0.00</span>
+            <small>Refer Balance</small>
+        </div>
+    </div>
+
+    <div class="action-container">
+        <button class="btn-main btn-deposit" onclick="openModal('depositModal')">
+            <i class="fas fa-plus-circle"></i> DEPOSIT
+        </button>
+        <button class="btn-main btn-withdraw" onclick="openModal('withdrawModal')">
+            <i class="fas fa-university"></i> WITHDRAW
+        </button>
+    </div>
+
+    <div class="menu-list">
+        <div class="menu-item" onclick="openModal('editModal')">
+            <span><i class="fas fa-user-edit"></i> Edit Profile</span>
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="menu-item" onclick="openModal('historyModal')">
+            <span><i class="fas fa-history"></i> Transaction History</span>
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="menu-item" style="color:var(--danger); font-weight:bold;" id="logoutBtn">
+            <span><i class="fas fa-sign-out-alt"></i> Logout</span>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3>Edit Profile</h3>
+            <input type="text" id="newName" placeholder="Enter New Name">
+            <button class="btn-main btn-deposit" style="width:100%;" id="saveProfileBtn">SAVE CHANGES</button>
+            <button class="btn-main" style="width:100%; background:#555; margin-top:10px;" onclick="closeModal('editModal')">CANCEL</button>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <h3>Transaction History</h3>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr><th>Type</th><th>Amount</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="historyBody"></tbody>
+                </table>
+            </div>
+            <button class="btn-main" style="width:100%; background:#555; margin-top:20px;" onclick="closeModal('historyModal')">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="depositModal" class="modal">
+        <div class="modal-content">
+            <h3>Deposit Money</h3>
+            <div class="qr-slider">
+                <div class="qr-card">
+                    <p><b>eSewa Admin QR</b></p>
+                    <img src="https://i.ibb.co/Fbb5cNtp/esewa-qr.png" id="qrEsewa">
+                    <br>
+                    <a href="https://i.ibb.co/Fbb5cNtp/esewa-qr.png" download="Esewa_QR.png" class="btn-download"><i class="fas fa-download"></i> Download QR</a>
+                </div>
+                <div class="qr-card">
+                    <p><b>Khalti Admin QR</b></p>
+                    <img src="https://i.ibb.co/wNNT1HxY/khalti-qr.png" id="qrKhalti">
+                    <br>
+                    <a href="https://i.ibb.co/wNNT1HxY/khalti-qr.png" download="Khalti_QR.png" class="btn-download"><i class="fas fa-download"></i> Download QR</a>
+                </div>
+            </div>
+            <input type="number" id="depAmount" placeholder="Amount (Min रू 50)">
+            <p style="font-size: 0.7rem; margin-top: 10px;">भुक्तानी गरेको फोटो (Screenshot) हाल्नुहोस्</p>
+            <input type="file" id="depProof" accept="image/*">
+            <button class="btn-main btn-deposit" style="width:100%;" id="submitDepBtn">SUBMIT DEPOSIT</button>
+            <button class="btn-main" style="width:100%; background:#555; margin-top:10px;" onclick="closeModal('depositModal')">CANCEL</button>
+        </div>
+    </div>
+
+    <div id="withdrawModal" class="modal">
+        <div class="modal-content">
+            <h3>Withdraw Money</h3>
+            <select id="witMethod"><option value="esewa">eSewa</option><option value="khalti">Khalti</option></select>
+            <input type="text" id="witID" placeholder="Wallet ID / Number">
+            <input type="number" id="witAmount" placeholder="Amount (Min रू 100)">
+            <button class="btn-main" style="width:100%; background:var(--blue);" id="submitWitBtn">DONE WITHDRAW</button>
+            <button class="btn-main" style="width:100%; background:#555; margin-top:10px;" onclick="closeModal('withdrawModal')">CANCEL</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i><br>Home</a>
+        <a href="matches.html" class="nav-item"><i class="fas fa-gamepad"></i><br>Matches</a>
+        <a href="notice.html" class="nav-item"><i class="fas fa-bullhorn"></i><br>Notice</a>
+        <a href="profile.html" class="nav-item active"><i class="fas fa-user"></i><br>Profile</a>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, onValue, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
+            authDomain: "ludo-king-b051a.firebaseapp.com",
+            projectId: "ludo-king-b051a",
+            storageBucket: "ludo-king-b051a.firebasestorage.app",
+            messagingSenderId: "311482948017",
+            appId: "1:311482948017:web:4a986ca1416b6e456e0590"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // सहि ImgBB API कुञ्जी र URL
+        const IMGBB_API_KEY = "7649636e77b828ae7fcc601bfdf43786";
+
+        window.openModal = (id) => document.getElementById(id).style.display = 'flex';
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+
+        // UID Copy Function
+        window.copyUID = () => {
+            const uid = document.getElementById('displayID').innerText;
+            if(uid === "-------") return;
+            navigator.clipboard.writeText(uid).then(() => {
+                alert("UID Copied: " + uid);
+            }).catch(err => {
+                const el = document.createElement('textarea');
+                el.value = uid;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                alert("UID Copied: " + uid);
+            });
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const userRef = ref(db, 'users/' + user.uid);
+                document.getElementById('displayID').innerText = user.uid;
+                
+                onValue(userRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        document.getElementById('displayName').innerText = data.name || "Gamer";
+                        document.getElementById('referCount').innerText = data.referralCount || 0;
+                        document.getElementById('referBalance').innerText = "रू " + (data.balance || 0).toFixed(2);
+                    }
+                });
+
+                // PHOTO UPLOAD FUNCTIONFIXED
+                document.getElementById('submitDepBtn').onclick = async () => {
+                    const amt = document.getElementById('depAmount').value;
+                    const fileInput = document.getElementById('depProof');
+                    
+                    if (amt < 50) return alert("न्यूनतम डिपोजिट रू ५० हुनुपर्छ!");
+                    if (!fileInput.files || fileInput.files.length === 0) return alert("कृपया भुक्तानीको फोटो (Screenshot) छान्नुहोस्!");
+
+                    const submitBtn = document.getElementById('submitDepBtn');
+                    submitBtn.innerText = "UPLOADING...";
+                    submitBtn.disabled = true;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append("image", fileInput.files[0]);
+
+                        // सहि URL: https://api.imgbb.com/1/upload
+                        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                            method: "POST",
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            const imageUrl = result.data.url;
+                            const depData = { 
+                                uid: user.uid, 
+                                amount: amt, 
+                                status: 'Pending', 
+                                proofUrl: imageUrl, 
+                                time: Date.now(),
+                                type: 'Deposit'
+                            };
+
+                            // Firebase मा डाटा पठाउने
+                            await push(ref(db, 'transactions/' + user.uid), depData);
+                            await push(ref(db, 'admin/deposits'), depData);
+
+                            alert("Deposit Request सफलतापुर्वक पठाइयो!");
+                            closeModal('depositModal');
+                            document.getElementById('depAmount').value = "";
+                            document.getElementById('depProof').value = "";
+                        } else {
+                            alert("ImgBB Upload Error: " + (result.error ? result.error.message : "अज्ञात त्रुटि"));
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        alert("Error: फोटो अपलोड गर्न सकिएन। इन्टरनेट चेक गर्नुहोस्।");
+                    } finally {
+                        submitBtn.innerText = "SUBMIT DEPOSIT";
+                        submitBtn.disabled = false;
+                    }
+                };
+
+                onValue(ref(db, 'transactions/' + user.uid), (snapshot) => {
+                    const hBody = document.getElementById('historyBody');
+                    hBody.innerHTML = "";
+                    snapshot.forEach((child) => {
+                        const val = child.val();
+                        hBody.innerHTML += `<tr><td>${val.type || 'Deposit'}</td><td>रू ${val.amount}</td><td class="status-p">${val.status}</td></tr>`;
+                    });
+                });
+
+                document.getElementById('saveProfileBtn').onclick = () => {
+                    const name = document.getElementById('newName').value;
+                    if (name) {
+                        update(userRef, { name: name }).then(() => {
+                            closeModal('editModal');
+                            alert("नाम अपडेट भयो!");
+                        });
+                    }
+                };
+
+                document.getElementById('submitWitBtn').onclick = () => {
+                    const amt = document.getElementById('witAmount').value;
+                    const method = document.getElementById('witMethod').value;
+                    const walletId = document.getElementById('witID').value;
+                    if (amt < 100) return alert("न्यूनतम विथड्र रू १०० हुनुपर्छ!");
+                    
+                    const witData = { type: 'Withdraw', amount: amt, status: 'Pending', method: method, wallet: walletId, uid: user.uid, time: Date.now() };
+                    push(ref(db, 'transactions/' + user.uid), witData);
+                    push(ref(db, 'admin/withdraws'), witData);
+                    alert("Withdraw Request पठाइयो!");
+                    closeModal('withdrawModal');
+                };
+
+                document.getElementById('logoutBtn').onclick = () => {
+                    if(confirm("के तपाईँ लगआउट गर्न चाहनुहुन्छ?")) signOut(auth).then(() => window.location.href = "index.html");
+                };
+
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+</body>
+</html>

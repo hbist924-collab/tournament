@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notice & Updates</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #2c3e50; --gold: #f1c40f; --blue: #3498db; --success: #27ae60; --danger: #e74c3c; }
+        body { font-family: sans-serif; margin: 0; background: #f0f2f5; padding-bottom: 80px; color: #333; }
+        .header { background: var(--primary); color: white; padding: 20px; text-align: center; border-radius: 0 0 20px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .header h2 { margin: 0; font-size: 1.4rem; letter-spacing: 1px; }
+        .container { padding: 15px; }
+        .section-title { font-weight: bold; margin: 15px 0 10px 5px; display: flex; align-items: center; gap: 8px; color: var(--primary); }
+        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        /* Notice Styles */
+        .notice-item { border-left: 4px solid var(--gold); padding: 12px; margin-bottom: 12px; background: #fff9e6; border-radius: 0 8px 8px 0; }
+        .notice-date { font-size: 0.75rem; color: #777; display: block; margin-bottom: 4px; }
+        .notice-text { font-size: 0.95rem; line-height: 1.5; font-weight: 500; color: #2c3e50; }
+
+        /* Group Box Styles */
+        .group-list { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #eee; padding-top: 15px; }
+        .group-btn { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; border-radius: 8px; text-decoration: none; color: white; font-weight: bold; font-size: 0.9rem; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .group-btn i { font-size: 1.2rem; }
+        .ludo-g { background: #e67e22; }
+        .ff-g { background: #e74c3c; }
+        .pubg-g { background: #27ae60; }
+        .group-btn:active { transform: scale(0.96); }
+
+        .ads-box { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; text-align: center; }
+        .ads-box i { font-size: 2rem; margin-bottom: 10px; color: var(--gold); }
+        .btn-ads { background: var(--gold); color: #000; border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; transition: 0.3s; }
+        
+        .app-box { display: flex; align-items: center; gap: 15px; border: 1px solid #ddd; }
+        .app-icon { width: 50px; height: 50px; border-radius: 10px; }
+        .app-info { flex: 1; }
+        .app-info b { font-size: 0.95rem; display: block; }
+        .app-info span { font-size: 0.75rem; color: #666; }
+        .btn-dl { background: var(--success); color: white; border: none; padding: 7px 12px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; text-decoration: none; }
+        
+        .game-rules { background: #fff; border-top: 4px solid var(--danger); }
+        .rule-list { padding-left: 20px; margin: 10px 0; font-size: 0.85rem; color: #444; }
+        .rule-list li { margin-bottom: 8px; }
+        
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
+        .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>सूचना र अपडेटहरू</h2>
+    </div>
+
+    <div class="container">
+        
+        <div class="section-title"><i class="fas fa-bullhorn"></i> मुख्य सूचना (Notice)</div>
+        <div class="card">
+            <div id="noticeList">
+                <p style="text-align:center; color:#888;">सूचना लोड हुँदैछ...</p>
+            </div>
+
+            <div class="group-list">
+                <p style="font-size: 0.8rem; font-weight: bold; color: #555; margin-bottom: 5px;"><i class="fas fa-users"></i> छलफलको लागि ग्रुप जोइन गर्नुहोस्:</p>
+                
+                <a href="https://chat.whatsapp.com/Cqqx9nfph5O2QbJQU6hO63" target="_blank" class="group-btn ludo-g">
+                    <span><i class="fas fa-dice"></i> Ludo King Group</span>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+
+                <a href="https://chat.whatsapp.com/IE2kwmxE5rV6QUBt4RYphE" target="_blank" class="group-btn ff-g">
+                    <span><i class="fas fa-fire"></i> Free Fire Group</span>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+
+                <a href="https://chat.whatsapp.com/ItMjSt8FL8O7jYEd90vTyi" target="_blank" class="group-btn pubg-g">
+                    <span><i class="fas fa-crosshairs"></i> PUBG Group</span>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="section-title"><i class="fas fa-video"></i> भिडियो हेर्नुहोस् र कमाउनुहोस्</div>
+        <div class="card ads-box">
+            <i class="fas fa-play-circle"></i>
+            <p style="margin: 5px 0;">एउटा विज्ञापन हेरे बापत <b>रू ०.२०</b> पाउनुहोस्</p>
+            <button class="btn-ads" id="watchAdBtn">WATCH VIDEO AD</button>
+        </div>
+
+        <div class="section-title"><i class="fas fa-download"></i> उपयोगी एपहरू</div>
+        <div class="card app-box">
+            <img src="https://i.ibb.co/GvfdCh8y/images.jpg" class="app-icon">
+            <div class="app-info">
+                <b>Ludo King Official</b>
+                <span>Size: 52MB | Version: 7.2</span>
+            </div>
+            <a href="https://play.google.com/store/apps/details?id=com.ludo.king" target="_blank" class="btn-dl">Download</a>
+        </div>
+
+        <div class="section-title"><i class="fas fa-info-circle"></i> गेम खेल्ने नियमहरू</div>
+        <div class="card game-rules">
+            <p style="font-weight: bold; font-size: 0.9rem; color: var(--danger);">जरुरी नियमहरू:</p>
+            <ul class="rule-list">
+                <li>गेम सुरु हुनु भन्दा ५ मिनेट अगाडि नै रुममा छिर्नुपर्नेछ।</li>
+                <li>गलत रिजल्ट वा 'Fake Screenshot' हालेमा खाता स्थायी रूपमा बन्द गरिनेछ।</li>
+                <li>कुनै विवाद भएमा 'Video Record' अनिवार्य हुनुपर्नेछ।</li>
+                <li>न्यूनतम विथड्र रू १०० र डिपोजिट रू ५० मात्र मान्य हुनेछ।</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i><br>Home</a>
+        <a href="matches.html" class="nav-item"><i class="fas fa-gamepad"></i><br>Matches</a>
+        <a href="notice.html" class="nav-item active"><i class="fas fa-bullhorn"></i><br>Notice</a>
+        <a href="profile.html" class="nav-item"><i class="fas fa-user"></i><br>Profile</a>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // अपडेटेड नयाँ API Key
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
+            authDomain: "ludo-king-b051a.firebaseapp.com",
+            projectId: "ludo-king-b051a",
+            storageBucket: "ludo-king-b051a.firebasestorage.app",
+            messagingSenderId: "311482948017",
+            appId: "1:311482948017:web:4a986ca1416b6e456e0590"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let userBalance = 0;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const userRef = ref(db, 'users/' + user.uid);
+                
+                onValue(userRef, (snapshot) => {
+                    if(snapshot.exists()) userBalance = snapshot.val().balance || 0;
+                });
+
+                const noticeRef = ref(db, 'settings/notice');
+                onValue(noticeRef, (snapshot) => {
+                    const noticeList = document.getElementById('noticeList');
+                    const item = snapshot.val();
+                    
+                    if (item) {
+                        noticeList.innerHTML = "";
+                        const date = item.date || "भर्खरै";
+                        const text = item.text || "सूचना उपलब्ध छैन।";
+                        
+                        noticeList.innerHTML = `
+                            <div class="notice-item">
+                                <span class="notice-date"><i class="far fa-clock"></i> ${date}</span>
+                                <div class="notice-text">${text}</div>
+                            </div>`;
+                    } else {
+                        noticeList.innerHTML = `<p style="text-align:center; color:#888;">हाल कुनै नयाँ सूचना छैन।</p>`;
+                    }
+                });
+
+                document.getElementById('watchAdBtn').onclick = () => {
+                    window.open("https://omg10.com/4/10807361", "_blank");
+                    alert("विज्ञापन हेरिसकेपछि तपाईँको ब्यालेन्समा रू ०.२० थपिनेछ।");
+                    
+                    setTimeout(() => {
+                        const reward = 0.20;
+                        update(userRef, { balance: Number((userBalance + reward).toFixed(2)) }).then(() => {
+                            console.log("Reward Added Successfully");
+                        });
+                    }, 5000); 
+                };
+
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+</body>
+</html>
