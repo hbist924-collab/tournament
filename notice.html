@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notice & Updates</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root { --primary: #2c3e50; --gold: #f1c40f; --blue: #3498db; --success: #27ae60; --danger: #e74c3c; }
         body { font-family: sans-serif; margin: 0; background: #f0f2f5; padding-bottom: 80px; color: #333; }
@@ -46,6 +47,9 @@
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
         .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
+
+        /* Custom SweetAlert Style */
+        .swal2-popup { border-radius: 15px !important; font-family: sans-serif; }
     </style>
 </head>
 <body>
@@ -124,7 +128,6 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // अपडेटेड नयाँ API Key
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
             authDomain: "ludo-king-b051a.firebaseapp.com",
@@ -139,6 +142,16 @@
         const db = getDatabase(app);
 
         let userBalance = 0;
+
+        // Custom Show Alert
+        window.showAlert = (msg, icon = 'info') => {
+            return Swal.fire({
+                text: msg,
+                icon: icon,
+                confirmButtonColor: '#2c3e50',
+                confirmButtonText: 'OK'
+            });
+        };
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -170,12 +183,22 @@
 
                 document.getElementById('watchAdBtn').onclick = () => {
                     window.open("https://omg10.com/4/10807361", "_blank");
-                    alert("विज्ञापन हेरिसकेपछि तपाईँको ब्यालेन्समा रू ०.२० थपिनेछ।");
+                    
+                    showAlert("विज्ञापन हेरिसकेपछि तपाईँको ब्यालेन्समा रू ०.२० थपिनेछ।", "info");
                     
                     setTimeout(() => {
                         const reward = 0.20;
                         update(userRef, { balance: Number((userBalance + reward).toFixed(2)) }).then(() => {
                             console.log("Reward Added Successfully");
+                            // रिवार्ड थपिएको सानो नोटिफिकेसन दिन सकिन्छ
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'रू ०.२० प्राप्त भयो!',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
                         });
                     }, 5000); 
                 };
