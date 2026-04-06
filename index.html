@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login & Register | Gaming App</title>
+    <title>Login & Register | Tournament Nepal</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -25,11 +25,20 @@
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         
         #regLoader, #loginLoader { display: none; margin-top: 15px; color: var(--primary); font-weight: bold; }
-        /* Custom SweetAlert Style */
         .swal2-popup { border-radius: 15px !important; font-family: sans-serif; }
+
+        /* Initial Loading Overlay */
+        #pageLoader { position: fixed; inset: 0; background: var(--primary); z-index: 9999; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; flex-direction: column; gap: 10px; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid var(--gold); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
+
+    <div id="pageLoader">
+        <div class="spinner"></div>
+        <p>Checking Login...</p>
+    </div>
 
     <div class="container">
         <div class="auth-box" id="registerForm">
@@ -58,8 +67,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
@@ -74,23 +83,28 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // Custom Show Alert Function
+        // Custom Show Alert
         window.showAlert = (msg, icon = 'info') => {
-            return Swal.fire({
-                text: msg,
-                icon: icon,
-                confirmButtonColor: '#2c3e50',
-                confirmButtonText: 'OK'
-            });
+            return Swal.fire({ text: msg, icon: icon, confirmButtonColor: '#2c3e50', confirmButtonText: 'OK' });
         };
-
-        const regLoader = document.getElementById('regLoader');
-        const loginLoader = document.getElementById('loginLoader');
 
         window.toggleForm = (type) => {
             document.getElementById('registerForm').style.display = (type === 'login') ? 'none' : 'block';
             document.getElementById('loginForm').style.display = (type === 'login') ? 'block' : 'none';
         };
+
+        // १. लगइन लगनशीलता (Persistence) सेट गर्ने र पहिले नै लगइन छ कि छैन चेक गर्ने
+        setPersistence(auth, browserLocalPersistence).then(() => {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // यदि युजर पहिले नै लगइन छ भने सिधै ड्यासबोर्डमा पठाउने
+                    window.location.href = "dashboard.html";
+                } else {
+                    // लगइन छैन भने मात्र लोडिङ स्क्रिन हटाउने
+                    document.getElementById('pageLoader').style.display = 'none';
+                }
+            });
+        });
 
         // Handle Registration
         document.getElementById('regBtn').onclick = async () => {
@@ -102,7 +116,7 @@
             if(!name || !email || !pass) return showAlert("कृपया सबै विवरण भर्नुहोस्!", "warning");
             if(pass.length < 6) return showAlert("पासवर्ड कम्तिमा ६ अक्षरको हुनुपर्छ!", "warning");
 
-            regLoader.style.display = 'block';
+            document.getElementById('regLoader').style.display = 'block';
             document.getElementById('regBtn').disabled = true;
 
             try {
@@ -112,19 +126,19 @@
                 await set(ref(db, 'users/' + user.uid), {
                     name: name,
                     email: email,
-                    balance: 5.00,
+                    balance: 10.00, // तपाईँको अघिल्लो रिक्व्येस्ट अनुसार १० रुपैयाँ बोनस
                     referralCount: 0,
                     referCode: refer || "NONE",
                     uid: user.uid,
                     joinedAt: Date.now()
                 });
 
-                await showAlert("दर्ता सफल भयो! रू ५ बोनस प्राप्त भयो।", "success");
+                await showAlert("दर्ता सफल भयो! रू १० बोनस प्राप्त भयो।", "success");
                 window.location.href = "dashboard.html";
             } catch (error) {
                 showAlert("Error: " + error.message, "error");
             } finally {
-                regLoader.style.display = 'none';
+                document.getElementById('regLoader').style.display = 'none';
                 document.getElementById('regBtn').disabled = false;
             }
         };
@@ -136,26 +150,18 @@
 
             if(!email || !pass) return showAlert("Email र Password भर्नुहोस्!", "warning");
 
-            loginLoader.style.display = 'block';
+            document.getElementById('loginLoader').style.display = 'block';
             document.getElementById('loginBtn').disabled = true;
 
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-                await showAlert("लगइन सफल!", "success");
-                window.location.href = "dashboard.html";
+                // लगइन सफल भएपछि onAuthStateChanged ले आफै ड्यासबोर्डमा पठाउँछ
             } catch (error) {
                 showAlert("लगइन असफल! इमेल वा पासवर्ड मिलेन।", "error");
-            } finally {
-                loginLoader.style.display = 'none';
+                document.getElementById('loginLoader').style.display = 'none';
                 document.getElementById('loginBtn').disabled = false;
             }
         };
-
-        onAuthStateChanged(auth, (user) => {
-            if (user && !window.location.href.includes("dashboard.html")) {
-                console.log("User is already logged in.");
-            }
-        });
     </script>
 </body>
 </html>
