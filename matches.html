@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Match Center</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root { --primary: #2c3e50; --gold: #f1c40f; --blue: #3498db; --success: #27ae60; --warning: #f39c12; --light: #ecf0f1; --danger: #e74c3c; }
         body { font-family: sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 80px; }
@@ -39,6 +40,9 @@
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
         .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
+
+        /* Custom SweetAlert Style */
+        .swal2-popup { border-radius: 15px !important; font-family: sans-serif; }
     </style>
 </head>
 <body>
@@ -87,7 +91,6 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getDatabase, ref, onValue, update, push, get, set, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // अपडेटेड नयाँ API Key
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
             authDomain: "ludo-king-b051a.firebaseapp.com",
@@ -107,6 +110,16 @@
         let userUid = "";
         let activeChatId = "";
 
+        // Custom Show Alert (रातो घेरा हटाउने फङ्सन)
+        window.showAlert = (msg, icon = 'info') => {
+            return Swal.fire({
+                text: msg,
+                icon: icon,
+                confirmButtonColor: '#2c3e50',
+                confirmButtonText: 'OK'
+            });
+        };
+
         window.showTab = (tabName) => {
             currentTab = tabName;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -123,7 +136,7 @@
                     userBalance = snapshot.val()?.balance || 0;
                 });
                 renderMatches();
-            } else { window.location.href = "index.html"; } // Login page मा रिडाइरेक्ट
+            } else { window.location.href = "index.html"; }
         });
 
         function renderMatches() {
@@ -221,23 +234,40 @@
 
         // --- Standard Logic ---
         window.joinMatch = (id, fee) => {
-            if (userBalance < fee) return alert("ब्यालेन्स पुगेन!");
-            if (confirm(`रू ${fee} तिरेर म्याच ज्वाइन गर्ने?`)) {
-                update(ref(db), {
-                    [`matches/${id}/status`]: 'waiting',
-                    [`matches/${id}/joinerId`]: userUid,
-                    [`users/${userUid}/balance`]: userBalance - fee
-                }).then(() => { alert("Join सफल!"); showTab('waiting'); });
-            }
+            if (userBalance < fee) return showAlert("तपाईँको ब्यालेन्स पुगेन!", "error");
+            
+            Swal.fire({
+                text: `रू ${fee} तिरेर म्याच ज्वाइन गर्ने?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3498db',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, Join!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    update(ref(db), {
+                        [`matches/${id}/status`]: 'waiting',
+                        [`matches/${id}/joinerId`]: userUid,
+                        [`users/${userUid}/balance`]: userBalance - fee
+                    }).then(() => { 
+                        showAlert("Join सफल भयो!", "success"); 
+                        showTab('waiting'); 
+                    });
+                }
+            });
         };
 
-        window.copyCode = (code) => { navigator.clipboard.writeText(code).then(() => alert("Code कपी भयो!")); };
+        window.copyCode = (code) => { 
+            navigator.clipboard.writeText(code).then(() => {
+                showAlert("Code कपी भयो!", "success");
+            });
+        };
 
         window.openProofModal = (id) => {
             document.getElementById('uploadModal').style.display = 'flex';
             document.getElementById('confirmProofBtn').onclick = async () => {
                 const fileInput = document.getElementById('proofFile');
-                if (fileInput.files.length === 0) return alert("फोटो छान्नुहोस्!");
+                if (fileInput.files.length === 0) return showAlert("कृपया एउटा फोटो छान्नुहोस्!", "warning");
 
                 const submitBtn = document.getElementById('confirmProofBtn');
                 submitBtn.innerText = "UPLOADING...";
@@ -264,11 +294,11 @@
                         if (updatedMatch.creatorProof && updatedMatch.joinerProof) {
                             await update(ref(db, `matches/${id}`), { status: 'result', adminApproval: 'pending' });
                         }
-                        alert("प्रुफ सफलपूर्वक अपलोड भयो!");
+                        showAlert("प्रुफ सफलपूर्वक अपलोड भयो!", "success");
                         closeModal();
                         showTab('result');
                     }
-                } catch (e) { alert("Error: " + e.message); }
+                } catch (e) { showAlert("Error: " + e.message, "error"); }
                 finally { submitBtn.innerText = "Submit Proof"; submitBtn.disabled = false; }
             };
         };
