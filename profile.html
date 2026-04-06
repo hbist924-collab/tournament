@@ -3,57 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Profile</title>
+    <title>User Profile | Tournament Nepal</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        :root { --primary: #2c3e50; --gold: #f1c40f; --success: #27ae60; --danger: #e74c3c; --blue: #3498db; }
-        body { font-family: sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 80px; }
-        .profile-header { background: var(--primary); color: white; padding: 30px 15px; text-align: center; border-radius: 0 0 25px 25px; position: relative; }
-        .user-img-container { position: relative; display: inline-block; }
-        .user-img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--gold); margin-bottom: 10px; object-fit: cover; background: #eee; }
-        .edit-img-icon { position: absolute; bottom: 10px; right: 0; background: var(--gold); color: #000; padding: 5px; border-radius: 50%; font-size: 0.7rem; cursor: pointer; }
-        .user-name { font-size: 1.2rem; font-weight: bold; margin: 5px 0; }
+        :root { --primary: #2c3e50; --gold: #f1c40f; --success: #27ae60; --danger: #e74c3c; --blue: #3498db; --light: #ecf0f1; }
+        body { font-family: sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 80px; color: #333; overflow-x: hidden; }
         
-        .uid-container { font-size: 0.8rem; opacity: 0.9; background: rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 20px; cursor: pointer; margin-top: 5px; transition: 0.3s; }
+        /* Loading Overlay */
+        #pageLoader { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 10px; font-weight: bold; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .profile-header { background: var(--primary); color: white; padding: 35px 15px; text-align: center; border-radius: 0 0 25px 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .user-img-container { position: relative; display: inline-block; margin-bottom: 10px; }
+        .user-img { width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--gold); object-fit: cover; background: #fff; }
+        .edit-img-icon { position: absolute; bottom: 5px; right: 5px; background: var(--gold); color: #000; padding: 7px; border-radius: 50%; font-size: 0.8rem; cursor: pointer; border: 2px solid var(--primary); }
+        
+        .user-name { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; }
+        .uid-container { font-size: 0.75rem; background: rgba(255,255,255,0.15); display: inline-flex; align-items: center; gap: 8px; padding: 6px 15px; border-radius: 20px; cursor: pointer; transition: 0.3s; }
         .uid-container:active { background: rgba(255,255,255,0.3); }
 
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; margin-top: -20px; }
-        .stat-card { background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .stat-card i { color: var(--gold); margin-bottom: 5px; }
-        .stat-val { display: block; font-weight: bold; font-size: 1.1rem; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 15px; margin-top: -25px; }
+        .stat-card { background: white; padding: 18px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.08); border-bottom: 3px solid var(--gold); }
+        .stat-card i { font-size: 1.2rem; color: var(--primary); margin-bottom: 8px; }
+        .stat-val { display: block; font-weight: 800; font-size: 1.2rem; color: var(--primary); }
+        .stat-label { font-size: 0.7rem; color: #777; text-transform: uppercase; font-weight: bold; }
         
-        .action-container { display: flex; justify-content: space-between; padding: 0 15px; margin-top: 10px; }
-        .btn-main { width: 48%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; }
-        .btn-deposit { background: var(--success); }
-        .btn-withdraw { background: var(--blue); }
+        .action-container { display: flex; justify-content: space-between; padding: 20px 15px; gap: 12px; }
+        .btn-main { flex: 1; padding: 14px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; font-size: 0.9rem; }
+        .btn-deposit { background: var(--success); box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3); }
+        .btn-withdraw { background: var(--blue); box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); }
+        .btn-main:active { transform: translateY(2px); }
         
-        .menu-list { background: white; margin: 20px 15px; border-radius: 12px; overflow: hidden; }
-        .menu-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; color: #333; text-decoration: none; cursor: pointer; }
+        .menu-list { background: white; margin: 10px 15px 25px; border-radius: 15px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .menu-item { padding: 18px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; color: #444; text-decoration: none; font-weight: 500; font-size: 0.95rem; }
+        .menu-item i:first-child { width: 25px; color: var(--primary); }
+        .menu-item:last-child { border-bottom: none; }
         
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 90%; padding: 20px; border-radius: 15px; text-align: center; max-height: 85vh; overflow-y: auto; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; padding: 15px; }
+        .modal-content { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 20px; text-align: center; max-height: 90vh; overflow-y: auto; }
         
-        .qr-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 15px 0; padding-bottom: 10px; }
-        .qr-card { min-width: 100%; scroll-snap-align: center; }
-        .qr-card img { width: 180px; height: 180px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 8px; }
-        .btn-download { display: inline-block; background: #eee; color: #333; padding: 6px 12px; border-radius: 5px; text-decoration: none; font-size: 0.75rem; border: 1px solid #ccc; margin-bottom: 10px; }
+        .qr-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; padding-bottom: 15px; }
+        .qr-card { min-width: 100%; scroll-snap-align: center; background: #f9f9f9; padding: 15px; border-radius: 12px; box-sizing: border-box; }
+        .qr-card img { width: 200px; height: 200px; border-radius: 10px; margin: 10px 0; border: 2px solid #eee; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 15px; }
+        th { background: #f8f9fa; padding: 12px 8px; border-bottom: 2px solid #eee; text-align: left; color: #666; }
+        td { padding: 12px 8px; border-bottom: 1px solid #f0f0f0; text-align: left; }
+        .status-Pending { color: var(--gold); font-weight: bold; }
+        .status-Success { color: var(--success); font-weight: bold; }
+        .status-Rejected { color: var(--danger); font-weight: bold; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; }
-        th { background: #f8f9fa; padding: 10px; border-bottom: 2px solid #ddd; text-align: left; }
-        td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-        .status-p { color: #f39c12; font-weight: bold; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
-        
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1.5px solid #ddd; border-radius: 10px; font-size: 1rem; outline: none; }
+        input:focus { border-color: var(--blue); }
+
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
         .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
-
-        /* Custom SweetAlert Style */
-        .swal2-popup { border-radius: 15px !important; font-family: sans-serif; }
     </style>
 </head>
 <body>
+
+    <div id="pageLoader">
+        <div class="spinner"></div>
+        <p>Loading Profile...</p>
+    </div>
 
     <div class="profile-header">
         <div class="user-img-container">
@@ -61,7 +76,7 @@
             <label for="imgUpload" class="edit-img-icon"><i class="fas fa-camera"></i></label>
             <input type="file" id="imgUpload" accept="image/*" style="display:none;">
         </div>
-        <div class="user-name" id="displayName">Loading...</div>
+        <div class="user-name" id="displayName">Gamer</div>
         <div class="uid-container" onclick="copyUID()">
             <span>UID: <span id="displayID">-------</span></span>
             <i class="far fa-copy"></i>
@@ -72,12 +87,12 @@
         <div class="stat-card">
             <i class="fas fa-users"></i>
             <span class="stat-val" id="referCount">0</span>
-            <small>Total Referral</small>
+            <span class="stat-label">Referrals</span>
         </div>
         <div class="stat-card">
             <i class="fas fa-wallet"></i>
             <span class="stat-val" id="referBalance">रू 0.00</span>
-            <small>Main Balance</small>
+            <span class="stat-label">Balance</span>
         </div>
     </div>
 
@@ -93,11 +108,11 @@
     <div class="menu-list">
         <div class="menu-item" onclick="openModal('editModal')">
             <span><i class="fas fa-user-edit"></i> Edit Profile</span>
-            <i class="fas fa-chevron-right"></i>
+            <i class="fas fa-chevron-right" style="font-size: 0.8rem; color: #ccc;"></i>
         </div>
         <div class="menu-item" onclick="openModal('historyModal')">
             <span><i class="fas fa-history"></i> Transaction History</span>
-            <i class="fas fa-chevron-right"></i>
+            <i class="fas fa-chevron-right" style="font-size: 0.8rem; color: #ccc;"></i>
         </div>
         <div class="menu-item" style="color:var(--danger); font-weight:bold;" id="logoutBtn">
             <span><i class="fas fa-sign-out-alt"></i> Logout</span>
@@ -109,58 +124,57 @@
             <h3>Edit Profile</h3>
             <input type="text" id="newName" placeholder="Enter New Name">
             <button class="btn-main btn-deposit" style="width:100%;" id="saveProfileBtn">SAVE CHANGES</button>
-            <button class="btn-main" style="width:100%; background:#555; margin-top:10px;" onclick="closeModal('editModal')">CANCEL</button>
+            <button class="btn-main" style="width:100%; background:#777; margin-top:10px;" onclick="closeModal('editModal')">CANCEL</button>
         </div>
     </div>
 
     <div id="historyModal" class="modal">
         <div class="modal-content">
-            <h3>Transaction History</h3>
+            <h3>History</h3>
             <div style="overflow-x:auto;">
                 <table>
                     <thead>
-                        <tr><th>Type</th><th>Amount</th><th>Status</th></tr>
+                        <tr><th>Type</th><th>Amt</th><th>Status</th></tr>
                     </thead>
                     <tbody id="historyBody"></tbody>
                 </table>
             </div>
-            <button class="btn-main" style="width:100%; background:#555; margin-top:20px;" onclick="closeModal('historyModal')">CLOSE</button>
+            <button class="btn-main" style="width:100%; background:#777; margin-top:20px;" onclick="closeModal('historyModal')">CLOSE</button>
         </div>
     </div>
 
     <div id="depositModal" class="modal">
         <div class="modal-content">
             <h3>Deposit Money</h3>
+            <p style="font-size: 0.8rem; color: #666;">QR स्क्यान गरेर पैसा पठाउनुहोस्</p>
             <div class="qr-slider">
                 <div class="qr-card">
-                    <p><b>eSewa Admin QR</b></p>
-                    <img src="https://i.ibb.co/Fbb5cNtp/esewa-qr.png" id="qrEsewa">
-                    <br>
-                    <a href="https://i.ibb.co/Fbb5cNtp/esewa-qr.png" download="Esewa_QR.png" class="btn-download"><i class="fas fa-download"></i> Download QR</a>
+                    <b>eSewa Admin</b><br>
+                    <img src="https://i.ibb.co/Fbb5cNtp/esewa-qr.png">
+                    <a href="https://i.ibb.co/Fbb5cNtp/esewa-qr.png" download class="btn-dl" style="display:block; background:#eee; padding:5px; color:#333; font-size:0.7rem; text-decoration:none; border-radius:5px;">Download QR</a>
                 </div>
                 <div class="qr-card">
-                    <p><b>Khalti Admin QR</b></p>
-                    <img src="https://i.ibb.co/wNNT1HxY/khalti-qr.png" id="qrKhalti">
-                    <br>
-                    <a href="https://i.ibb.co/wNNT1HxY/khalti-qr.png" download="Khalti_QR.png" class="btn-download"><i class="fas fa-download"></i> Download QR</a>
+                    <b>Khalti Admin</b><br>
+                    <img src="https://i.ibb.co/wNNT1HxY/khalti-qr.png">
+                    <a href="https://i.ibb.co/wNNT1HxY/khalti-qr.png" download class="btn-dl" style="display:block; background:#eee; padding:5px; color:#333; font-size:0.7rem; text-decoration:none; border-radius:5px;">Download QR</a>
                 </div>
             </div>
             <input type="number" id="depAmount" placeholder="Amount (Min रू 50)">
-            <p style="font-size: 0.7rem; margin-top: 10px;">भुक्तानी गरेको फोटो (Screenshot) हाल्नुहोस्</p>
-            <input type="file" id="depProof" accept="image/*" style="border:none; background:none;">
-            <button class="btn-main btn-deposit" style="width:100%;" id="submitDepBtn">SUBMIT DEPOSIT</button>
-            <button class="btn-main" style="width:100%; background:#555; margin-top:10px;" onclick="closeModal('depositModal')">CANCEL</button>
+            <p style="font-size: 0.75rem; color: var(--danger); margin-bottom: 5px;">Payment Screenshot यहाँ हाल्नुहोस्:</p>
+            <input type="file" id="depProof" accept="image/*" style="font-size: 0.8rem;">
+            <button class="btn-main btn-deposit" style="width:100%; margin-top:10px;" id="submitDepBtn">SUBMIT DEPOSIT</button>
+            <button class="btn-main" style="width:100%; background:#777; margin-top:10px;" onclick="closeModal('depositModal')">CANCEL</button>
         </div>
     </div>
 
     <div id="withdrawModal" class="modal">
         <div class="modal-content">
             <h3>Withdraw Money</h3>
-            <select id="witMethod"><option value="esewa">eSewa</option><option value="khalti">Khalti</option></select>
+            <select id="witMethod"><option value="eSewa">eSewa</option><option value="Khalti">Khalti</option></select>
             <input type="text" id="witID" placeholder="Wallet ID / Number">
             <input type="number" id="witAmount" placeholder="Amount (Min रू 100)">
-            <button class="btn-main" style="width:100%; background:var(--blue);" id="submitWitBtn">DONE WITHDRAW</button>
-            <button class="btn-main" style="width:100%; background:#555; margin-top:10px;" onclick="closeModal('withdrawModal')">CANCEL</button>
+            <button class="btn-main btn-withdraw" style="width:100%;" id="submitWitBtn">REQUEST WITHDRAW</button>
+            <button class="btn-main" style="width:100%; background:#777; margin-top:10px;" onclick="closeModal('withdrawModal')">CANCEL</button>
         </div>
     </div>
 
@@ -173,8 +187,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, onValue, update, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, onValue, update, push, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
@@ -190,145 +204,129 @@
         const db = getDatabase(app);
         const IMGBB_API_KEY = "7649636e77b828ae7fcc601bfdf43786";
 
-        // Custom Show Alert
-        window.showAlert = (msg, icon = 'info') => {
-            return Swal.fire({ text: msg, icon: icon, confirmButtonColor: '#2c3e50', confirmButtonText: 'OK' });
-        };
+        let userBalance = 0;
 
         window.openModal = (id) => document.getElementById(id).style.display = 'flex';
         window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+        window.showAlert = (msg, icon = 'info') => Swal.fire({ text: msg, icon: icon, confirmButtonColor: '#2c3e50' });
 
         window.copyUID = () => {
             const uid = document.getElementById('displayID').innerText;
-            if(uid === "-------") return;
-            navigator.clipboard.writeText(uid).then(() => {
-                showAlert("UID कपी गरियो!", "success");
-            });
+            if(uid.includes('-')) return;
+            navigator.clipboard.writeText(uid).then(() => showAlert("UID कपी भयो!", "success"));
         };
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const userRef = ref(db, 'users/' + user.uid);
-                document.getElementById('displayID').innerText = user.uid;
-                
-                onValue(userRef, (snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        document.getElementById('displayName').innerText = data.name || "Gamer";
-                        document.getElementById('referCount').innerText = data.referralCount || 0;
-                        document.getElementById('referBalance').innerText = "रू " + (data.balance || 0).toFixed(2);
-                        if(data.profilePic) document.getElementById('displayPic').src = data.profilePic;
-                    }
-                });
-
-                // Profile Image Upload
-                document.getElementById('imgUpload').onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if(!file) return;
-
-                    Swal.fire({ title: 'प्रोफाइल फोटो अपलोड हुँदैछ...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
-
-                    try {
-                        const formData = new FormData();
-                        formData.append("image", file);
-                        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
-                        const result = await response.json();
-
-                        if (result.success) {
-                            await update(userRef, { profilePic: result.data.url });
-                            Swal.close();
-                            showAlert("प्रोफाइल फोटो अपडेट भयो!", "success");
-                        }
-                    } catch (err) { showAlert("Error: फोटो अपलोड भएन।", "error"); }
-                };
-
-                // Deposit Logic
-                document.getElementById('submitDepBtn').onclick = async () => {
-                    const amt = document.getElementById('depAmount').value;
-                    const fileInput = document.getElementById('depProof');
+        setPersistence(auth, browserLocalPersistence).then(() => {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    const userRef = ref(db, 'users/' + user.uid);
+                    document.getElementById('displayID').innerText = user.uid;
+                    document.getElementById('pageLoader').style.display = 'none';
                     
-                    if (amt < 50) return showAlert("न्यूनतम डिपोजिट रू ५० हुनुपर्छ!", "warning");
-                    if (fileInput.files.length === 0) return showAlert("कृपया भुक्तानीको Screenshot छान्नुहोस्!", "warning");
-
-                    const submitBtn = document.getElementById('submitDepBtn');
-                    submitBtn.innerText = "UPLOADING...";
-                    submitBtn.disabled = true;
-
-                    try {
-                        const formData = new FormData();
-                        formData.append("image", fileInput.files[0]);
-                        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
-                        const result = await response.json();
-
-                        if (result.success) {
-                            const depData = { 
-                                uid: user.uid, 
-                                amount: amt, 
-                                status: 'Pending', 
-                                proofUrl: result.data.url, 
-                                time: Date.now(),
-                                type: 'Deposit'
-                            };
-                            await push(ref(db, 'transactions/' + user.uid), depData);
-                            await push(ref(db, 'admin/deposits'), depData);
-
-                            showAlert("डिपोजिट अनुरोध पठाइयो! एडमिनले चेक गरेपछि ब्यालेन्स थपिनेछ।", "success");
-                            closeModal('depositModal');
+                    onValue(userRef, (snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            userBalance = data.balance || 0;
+                            document.getElementById('displayName').innerText = data.name || "Gamer";
+                            document.getElementById('referCount').innerText = data.referralCount || 0;
+                            document.getElementById('referBalance').innerText = "रू " + userBalance.toFixed(2);
+                            if(data.profilePic) document.getElementById('displayPic').src = data.profilePic;
                         }
-                    } catch (error) { showAlert("Error: अपलोड असफल भयो।", "error"); }
-                    finally { submitBtn.innerText = "SUBMIT DEPOSIT"; submitBtn.disabled = false; }
-                };
-
-                // Transaction History
-                onValue(ref(db, 'transactions/' + user.uid), (snapshot) => {
-                    const hBody = document.getElementById('historyBody');
-                    hBody.innerHTML = "";
-                    snapshot.forEach((child) => {
-                        const val = child.val();
-                        hBody.innerHTML += `<tr><td>${val.type}</td><td>रू ${val.amount}</td><td class="status-p">${val.status}</td></tr>`;
                     });
-                });
 
-                document.getElementById('saveProfileBtn').onclick = () => {
-                    const name = document.getElementById('newName').value;
-                    if (name) {
+                    // Update Name
+                    document.getElementById('saveProfileBtn').onclick = () => {
+                        const name = document.getElementById('newName').value.trim();
+                        if (!name) return showAlert("नाम लेख्नुहोस्!", "warning");
                         update(userRef, { name: name }).then(() => {
                             closeModal('editModal');
                             showAlert("नाम अपडेट भयो!", "success");
                         });
-                    }
-                };
+                    };
 
-                document.getElementById('submitWitBtn').onclick = () => {
-                    const amt = document.getElementById('witAmount').value;
-                    const method = document.getElementById('witMethod').value;
-                    const walletId = document.getElementById('witID').value;
-                    if (amt < 100) return showAlert("न्यूनतम विथड्र रू १०० हुनुपर्छ!", "warning");
-                    if (!walletId) return showAlert("वालेट आइडी भर्नुहोस्!", "warning");
-                    
-                    const witData = { type: 'Withdraw', amount: amt, status: 'Pending', method: method, wallet: walletId, uid: user.uid, time: Date.now() };
-                    push(ref(db, 'transactions/' + user.uid), witData);
-                    push(ref(db, 'admin/withdraws'), witData);
-                    showAlert("विथड्र अनुरोध पठाइयो!", "success");
-                    closeModal('withdrawModal');
-                };
+                    // Profile Photo
+                    document.getElementById('imgUpload').onchange = async (e) => {
+                        const file = e.target.files[0];
+                        if(!file) return;
+                        Swal.fire({ title: 'Uploading...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-                document.getElementById('logoutBtn').onclick = () => {
-                    Swal.fire({
-                        text: "के तपाईँ लगआउट गर्न चाहनुहुन्छ?",
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonColor: '#2c3e50',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Yes, Logout'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            signOut(auth).then(() => window.location.href = "index.html");
+                        const formData = new FormData();
+                        formData.append("image", file);
+                        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
+                        const result = await res.json();
+
+                        if (result.success) {
+                            update(userRef, { profilePic: result.data.url }).then(() => {
+                                Swal.close();
+                                showAlert("फोटो अपडेट भयो!", "success");
+                            });
                         }
-                    });
-                };
+                    };
 
-            } else { window.location.href = "index.html"; }
+                    // Deposit Request
+                    document.getElementById('submitDepBtn').onclick = async () => {
+                        const amt = document.getElementById('depAmount').value;
+                        const fileInput = document.getElementById('depProof');
+                        if (amt < 50) return showAlert("न्यूनतम रू ५० हुनुपर्छ!", "warning");
+                        if (fileInput.files.length === 0) return showAlert("Screenshot अपलोड गर्नुहोस्!", "warning");
+
+                        document.getElementById('submitDepBtn').disabled = true;
+                        const formData = new FormData();
+                        formData.append("image", fileInput.files[0]);
+                        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
+                        const result = await res.json();
+
+                        if (result.success) {
+                            const depData = { uid: user.uid, amount: amt, status: 'Pending', type: 'Deposit', proof: result.data.url, time: Date.now() };
+                            push(ref(db, 'transactions/' + user.uid), depData);
+                            push(ref(db, 'admin/deposits'), depData);
+                            showAlert("अनुरोध पठाइयो!", "success");
+                            closeModal('depositModal');
+                        }
+                        document.getElementById('submitDepBtn').disabled = false;
+                    };
+
+                    // Withdraw Request
+                    document.getElementById('submitWitBtn').onclick = () => {
+                        const amt = Number(document.getElementById('witAmount').value);
+                        const wallet = document.getElementById('witID').value;
+                        const method = document.getElementById('witMethod').value;
+
+                        if (amt < 100) return showAlert("न्यूनतम रू १०० हुनुपर्छ!", "warning");
+                        if (amt > userBalance) return showAlert("पर्याप्त ब्यालेन्स छैन!", "error");
+                        if (!wallet) return showAlert("वालेट आइडी हाल्नुहोस्!", "warning");
+
+                        const witData = { uid: user.uid, amount: amt, status: 'Pending', type: 'Withdraw', method: method, wallet: wallet, time: Date.now() };
+                        
+                        // पैसा काट्ने र रिक्वेस्ट पठाउने
+                        update(userRef, { balance: userBalance - amt }).then(() => {
+                            push(ref(db, 'transactions/' + user.uid), witData);
+                            push(ref(db, 'admin/withdraws'), witData);
+                            showAlert("विथड्र अनुरोध पठाइयो!", "success");
+                            closeModal('withdrawModal');
+                        });
+                    };
+
+                    // History Fetch
+                    onValue(ref(db, 'transactions/' + user.uid), (snapshot) => {
+                        const hBody = document.getElementById('historyBody');
+                        hBody.innerHTML = "";
+                        const items = [];
+                        snapshot.forEach(snap => items.push(snap.val()));
+                        items.reverse().forEach(val => {
+                            hBody.innerHTML += `<tr><td>${val.type}</td><td>रू ${val.amount}</td><td class="status-${val.status}">${val.status}</td></tr>`;
+                        });
+                    });
+
+                    // Logout
+                    document.getElementById('logoutBtn').onclick = () => {
+                        Swal.fire({ text: "लगआउट गर्ने?", icon: 'question', showCancelButton: true }).then(res => {
+                            if(res.isConfirmed) signOut(auth).then(() => window.location.href = "index.html");
+                        });
+                    };
+
+                } else { window.location.href = "index.html"; }
+            });
         });
     </script>
 </body>
