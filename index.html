@@ -24,9 +24,17 @@
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         
         #regLoader, #loginLoader { display: none; margin-top: 10px; color: var(--primary); font-weight: bold; }
+        
+        /* Initial Loading Screen */
+        #splashLoader { position: fixed; inset: 0; background: var(--primary); z-index: 9999; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; flex-direction: column; }
     </style>
 </head>
 <body>
+
+    <div id="splashLoader">
+        <i class="fas fa-gamepad fa-3x fa-spin" style="color: var(--gold); margin-bottom: 15px;"></i>
+        Loading App...
+    </div>
 
     <div class="container">
         <div class="auth-box" id="registerForm">
@@ -73,24 +81,30 @@
 
         const regLoader = document.getElementById('regLoader');
         const loginLoader = document.getElementById('loginLoader');
+        const splash = document.getElementById('splashLoader');
 
-        // १. अटो-लगइन चेक (Persistence + Redirect)
+        // --- महत्वपूर्ण अपडेट: Auto Login Logic ---
         setPersistence(auth, browserLocalPersistence).then(() => {
-            onAuthStateChanged(auth, (user) => {
+            return onAuthStateChanged(auth, (user) => {
                 if (user) {
                     // यदि युजर पहिल्यै लगइन छ भने सिधै dashboard मा पठाइदिने
                     window.location.href = "dashboard.html";
+                } else {
+                    // लगइन छैन भने मात्र Splash Screen हटाउने र लगइन पेज देखाउने
+                    splash.style.display = 'none';
                 }
             });
+        }).catch((error) => {
+            splash.style.display = 'none';
+            console.error("Auth error:", error);
         });
+        // ---------------------------------------
 
-        // Form Toggle
         window.toggleForm = (type) => {
             document.getElementById('registerForm').style.display = (type === 'login') ? 'none' : 'block';
             document.getElementById('loginForm').style.display = (type === 'login') ? 'block' : 'none';
         };
 
-        // Handle Registration
         document.getElementById('regBtn').onclick = async () => {
             const name = document.getElementById('regName').value.trim();
             const email = document.getElementById('regEmail').value.trim();
@@ -116,7 +130,6 @@
                     uid: user.uid,
                     joinedAt: Date.now()
                 });
-
                 window.location.href = "dashboard.html";
             } catch (error) {
                 alert("Error: " + error.message);
@@ -126,7 +139,6 @@
             }
         };
 
-        // Handle Login
         document.getElementById('loginBtn').onclick = async () => {
             const email = document.getElementById('loginEmail').value.trim();
             const pass = document.getElementById('loginPass').value.trim();
