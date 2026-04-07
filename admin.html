@@ -49,6 +49,7 @@
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; box-sizing: border-box; }
         .select-winner { padding: 5px; margin-bottom: 5px; font-size: 0.8rem; }
 
+        /* Search Bar Styling */
         .search-container { position: relative; margin-bottom: 15px; }
         .search-container i { position: absolute; left: 12px; top: 24px; color: #777; }
         #userSearchInput { padding-left: 35px; border: 2px solid #34495e; }
@@ -118,10 +119,12 @@
 
         <div id="section-users" class="hidden">
             <h1>Manage Users</h1>
+            
             <div class="search-container">
                 <i class="fas fa-search"></i>
                 <input type="text" id="userSearchInput" placeholder="User ID (UID) बाट सर्च गर्नुहोस्..." onkeyup="searchUser()">
             </div>
+
             <div class="card">
                 <table>
                     <thead>
@@ -168,22 +171,19 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Sidebar Toggle
         window.toggleSidebar = () => {
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('active');
         };
 
-        // Navigation
         window.showSection = (id) => {
             document.querySelectorAll('.main-content > div').forEach(div => div.classList.add('hidden'));
             document.getElementById('section-' + id).classList.remove('hidden');
             if (window.innerWidth <= 768) toggleSidebar();
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-            if(event && event.currentTarget) event.currentTarget.classList.add('active');
+            if(event) event.currentTarget.classList.add('active');
         };
 
-        // Image Modal
         window.viewImg = (url) => {
             if(!url || url === "undefined" || url === "null") return alert("यो खेलाडीले प्रुफ हालेको छैन!");
             document.getElementById('modalImg').src = url;
@@ -191,47 +191,26 @@
         };
         window.closeImg = () => document.getElementById('imgModal').style.display = "none";
 
-        // Search Users
+        // SEARCH FUNCTION
         window.searchUser = () => {
             let input = document.getElementById('userSearchInput').value.toLowerCase();
             let table = document.getElementById('userListBody');
             let tr = table.getElementsByTagName('tr');
+
             for (let i = 0; i < tr.length; i++) {
+                // Column 0 is UID
                 let td = tr[i].getElementsByTagName('td')[0];
                 if (td) {
                     let txtValue = td.textContent || td.innerText;
-                    tr[i].style.display = txtValue.toLowerCase().indexOf(input) > -1 ? "" : "none";
+                    if (txtValue.toLowerCase().indexOf(input) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
                 }
             }
         };
 
-        // REAL-TIME USERS FETCH (Direct linking with Registration index.html)
-        onValue(ref(db, 'users'), (snapshot) => {
-            const list = document.getElementById('userListBody');
-            list.innerHTML = "";
-            let count = 0;
-            const data = snapshot.val();
-            
-            if(data) {
-                // Latest users first
-                Object.keys(data).reverse().forEach(uid => {
-                    count++;
-                    const u = data[uid];
-                    const row = `<tr>
-                        <td style="font-family: monospace; font-size: 0.8rem; color: #2980b9;">${uid}</td>
-                        <td>${u.name || 'Unknown'}</td>
-                        <td>रू ${u.balance || 0}</td>
-                        <td><button class="action-btn reject" onclick="deleteUser('${uid}')">Del</button></td>
-                    </tr>`;
-                    list.insertAdjacentHTML('beforeend', row);
-                });
-            } else {
-                list.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No users found in database.</td></tr>";
-            }
-            document.getElementById('stat-totalUsers').innerText = count;
-        });
-
-        // Deposits Fetch
         onValue(ref(db, 'admin/deposits'), (snapshot) => {
             const data = snapshot.val();
             const list = document.getElementById('depositListBody');
@@ -258,7 +237,6 @@
             document.getElementById('stat-pendingDeposit').innerText = count;
         });
 
-        // Matches Fetch
         onValue(ref(db, 'matches'), (snapshot) => {
             const data = snapshot.val();
             const list = document.getElementById('matchListBody');
@@ -298,7 +276,26 @@
             document.getElementById('stat-pendingMatch').innerText = count;
         });
 
-        // Actions
+        onValue(ref(db, 'users'), (snapshot) => {
+            const data = snapshot.val();
+            const list = document.getElementById('userListBody');
+            list.innerHTML = "";
+            let count = 0;
+            if(data) {
+                Object.keys(data).forEach(uid => {
+                    count++;
+                    const u = data[uid];
+                    list.innerHTML += `<tr>
+                        <td style="font-family: monospace; font-size: 0.8rem; color: #2980b9;">${uid}</td>
+                        <td>${u.name || 'User'}</td>
+                        <td>रू ${u.balance || 0}</td>
+                        <td><button class="action-btn reject" onclick="deleteUser('${uid}')">Del</button></td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('stat-totalUsers').innerText = count;
+        });
+
         window.processDeposit = (path, did, uid, amt) => {
             get(ref(db, `users/${uid}/balance`)).then((snap) => {
                 const current = snap.val() || 0;
@@ -310,22 +307,28 @@
 
         window.confirmAndApprove = (mid, prize) => {
             const selectedUid = document.getElementById(`winner_${mid}`).value;
-            if(confirm("बिजेतालाई भुक्तानी पक्का गर्ने हो?")) {
-                get(ref(db, `users/${selectedUid}/balance`)).then((snap) => {
-                    const current = snap.val() || 0;
-                    update(ref(db, `users/${selectedUid}`), { balance: Number((current + parseFloat(prize)).toFixed(2)) });
-                    update(ref(db, `matches/${mid}`), { status: 'completed', winnerId: selectedUid });
-                    alert("Winner Paid!");
-                });
+            if(confirm("के तपाइँ छानिएको बिजेतालाई भुक्तानी गर्न चाहनुहुन्छ?")) {
+                approveMatch(mid, selectedUid, prize);
             }
         };
 
+        window.approveMatch = (mid, uid, prize) => {
+            get(ref(db, `users/${uid}/balance`)).then((snap) => {
+                const current = snap.val() || 0;
+                update(ref(db, `users/${uid}`), { balance: Number((current + parseFloat(prize)).toFixed(2)) });
+                update(ref(db, `matches/${mid}`), { status: 'completed', winnerId: uid });
+                alert("Winner Paid Successfully!");
+            });
+        };
+
         window.rejectReq = (path, id) => {
-            if(confirm("Reject गर्ने पक्का हो?")) update(ref(db, `${path}/${id}`), { status: 'rejected' });
+            if(confirm("Reject गर्ने पक्का हो?")) {
+                update(ref(db, `${path}/${id}`), { status: 'rejected' });
+            }
         };
 
         window.deleteUser = (uid) => {
-            if(confirm("यो युजर हटाउने हो?")) remove(ref(db, `users/${uid}`));
+            if(confirm("यो युजरलाई हटाउने हो?")) remove(ref(db, `users/${uid}`));
         };
 
         window.saveAppLink = () => {
@@ -335,6 +338,7 @@
         window.postNotice = () => {
             set(ref(db, 'settings/notice'), { text: document.getElementById('noticeText').value, date: new Date().toLocaleDateString() }).then(() => alert("Notice Posted!"));
         };
+
     </script>
 </body>
 </html>
