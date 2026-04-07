@@ -23,8 +23,7 @@
         .bonus-tag { background: var(--success); color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; display: inline-block; margin-bottom: 15px; animation: bounce 2s infinite; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         
-        /* Loader */
-        #loader { display: none; margin-top: 10px; color: var(--primary); }
+        #regLoader, #loginLoader { display: none; margin-top: 10px; color: var(--primary); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -35,8 +34,8 @@
             <div class="bonus-tag">Register गर्दा रू ५ बोनस पाइनेछ! 🎁</div>
             <h2>नयाँ खाता खोल्नुहोस्</h2>
             <div class="input-group"><i class="fas fa-user"></i><input type="text" id="regName" placeholder="पूरा नाम"></div>
-            <div class="input-group"><i class="fas fa-phone"></i><input type="email" id="regEmail" placeholder="इमेल"></div>
-            <div class="input-group"><i class="fas fa-key"></i><input type="password" id="regPass" placeholder="पासवर्ड (न्यूनतम ६ अक्षर)"></div>
+            <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="regEmail" placeholder="इमेल"></div>
+            <div class="input-group"><i class="fas fa-key"></i><input type="password" id="regPass" placeholder="पासवर्ड (कम्तिमा ६ अक्षर)"></div>
             <div class="input-group"><i class="fas fa-user-friends"></i><input type="text" id="regRefer" placeholder="Referral Code (Optional)"></div>
             <button class="btn-auth" id="regBtn">REGISTER</button>
             <div id="regLoader"><i class="fas fa-spinner fa-spin"></i> Processing...</div>
@@ -56,10 +55,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // तपाईँको नयाँ API Key यहाँ राखिएको छ
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
             authDomain: "ludo-king-b051a.firebaseapp.com",
@@ -73,11 +71,18 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // Loader elements
         const regLoader = document.getElementById('regLoader');
         const loginLoader = document.getElementById('loginLoader');
-        regLoader.style.display = 'none';
-        loginLoader.style.display = 'none';
+
+        // १. अटो-लगइन चेक (Persistence + Redirect)
+        setPersistence(auth, browserLocalPersistence).then(() => {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // यदि युजर पहिल्यै लगइन छ भने सिधै dashboard मा पठाइदिने
+                    window.location.href = "dashboard.html";
+                }
+            });
+        });
 
         // Form Toggle
         window.toggleForm = (type) => {
@@ -87,10 +92,10 @@
 
         // Handle Registration
         document.getElementById('regBtn').onclick = async () => {
-            const name = document.getElementById('regName').value;
-            const email = document.getElementById('regEmail').value;
-            const pass = document.getElementById('regPass').value;
-            const refer = document.getElementById('regRefer').value;
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const pass = document.getElementById('regPass').value.trim();
+            const refer = document.getElementById('regRefer').value.trim();
 
             if(!name || !email || !pass) return alert("कृपया सबै विवरण भर्नुहोस्!");
             if(pass.length < 6) return alert("पासवर्ड कम्तिमा ६ अक्षरको हुनुपर्छ!");
@@ -102,18 +107,16 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
                 const user = userCredential.user;
 
-                // Realtime Database मा डाटा सेभ गर्ने
                 await set(ref(db, 'users/' + user.uid), {
                     name: name,
                     email: email,
-                    balance: 5.00, // रू ५ बोनस
+                    balance: 5.00,
                     referralCount: 0,
                     referCode: refer || "NONE",
                     uid: user.uid,
                     joinedAt: Date.now()
                 });
 
-                alert("दर्ता सफल भयो! रू ५ बोनस प्राप्त भयो।");
                 window.location.href = "dashboard.html";
             } catch (error) {
                 alert("Error: " + error.message);
@@ -125,8 +128,8 @@
 
         // Handle Login
         document.getElementById('loginBtn').onclick = async () => {
-            const email = document.getElementById('loginEmail').value;
-            const pass = document.getElementById('loginPass').value;
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
 
             if(!email || !pass) return alert("Email र Password भर्नुहोस्!");
 
@@ -135,7 +138,6 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-                alert("लगइन सफल!");
                 window.location.href = "dashboard.html";
             } catch (error) {
                 alert("लगइन असफल! इमेल वा पासवर्ड मिलेन।");
@@ -144,14 +146,6 @@
                 document.getElementById('loginBtn').disabled = false;
             }
         };
-
-        // अटो-रिडाइरेक्ट रोक्नको लागि चेक (यदि तपाईँ Dashboard मा मात्र पठाउन चाहनुहुन्छ भने)
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log("User is already logged in.");
-                // तपाईँ चाहनुहुन्छ भने यहाँ window.location.href = "dashboard.html" राख्न सक्नुहुन्छ
-            }
-        });
     </script>
 </body>
-</html> 
+</html>
