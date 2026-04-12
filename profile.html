@@ -42,7 +42,6 @@
         th { background: #f8f9fa; padding: 10px; border-bottom: 2px solid #ddd; }
         td { padding: 10px; border-bottom: 1px solid #eee; }
         
-        /* Status Styles */
         .status-pending { color: #f39c12; font-weight: bold; }
         .status-approved { color: #27ae60; font-weight: bold; }
         .status-rejected { color: #e74c3c; font-weight: bold; }
@@ -102,6 +101,10 @@
         </div>
         <div class="menu-item" style="color:var(--danger); font-weight:bold;" id="logoutBtn">
             <span><i class="fas fa-sign-out-alt"></i> Logout</span>
+        </div>
+        <div class="menu-item" style="color:var(--blue); font-weight:bold;" id="shareBtn">
+            <span><i class="fas fa-share-nodes"></i> Share App & Earn</span>
+            <i class="fas fa-chevron-right"></i>
         </div>
     </div>
 
@@ -175,7 +178,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, onValue, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, update, push, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
@@ -214,19 +217,32 @@
                     }
                 });
 
+                // --- Share Function with Referral Code ---
+                document.getElementById('shareBtn').onclick = () => {
+                    const uid = user.uid;
+                    const shareMsg = `नमस्कार! यो एकदमै राम्रो लुडो खेल्ने एप हो। मेरो रेफर कोड [ ${uid} ] प्रयोग गरेर जोइन हुनुहोस् र पैसा कमाउनुहोस्। \nएप डाउनलोड लिङ्क: https://www.appcreator24.com/app3987878-l0etgh`;
+                    
+                    if (navigator.share) {
+                        navigator.share({
+                            title: 'Ludo King Earn',
+                            text: shareMsg,
+                        }).catch(console.error);
+                    } else {
+                        navigator.clipboard.writeText(shareMsg);
+                        alert("Share message copied to clipboard!");
+                    }
+                };
+
                 // --- Real-time Transaction History Logic ---
                 onValue(ref(db, 'transactions/' + user.uid), (snapshot) => {
                     const hBody = document.getElementById('historyBody');
                     hBody.innerHTML = "";
-                    
                     if(snapshot.exists()){
                         snapshot.forEach((child) => {
                             const val = child.val();
                             const status = val.status ? val.status.toLowerCase() : "pending";
-                            
                             let statusClass = "status-pending";
                             let statusText = "Pending";
-
                             if(status === "approved" || status === "success") {
                                 statusClass = "status-approved";
                                 statusText = "Approved";
@@ -234,17 +250,9 @@
                                 statusClass = "status-rejected";
                                 statusText = "Rejected";
                             }
-
-                            hBody.innerHTML += `
-                                <tr>
-                                    <td>${val.type || 'Deposit'}</td>
-                                    <td>रू ${val.amount}</td>
-                                    <td class="${statusClass}">${statusText}</td>
-                                </tr>`;
+                            hBody.innerHTML += `<tr><td>${val.type || 'Deposit'}</td><td>रू ${val.amount}</td><td class="${statusClass}">${statusText}</td></tr>`;
                         });
-                    } else {
-                        hBody.innerHTML = "<tr><td colspan='3'>No history found</td></tr>";
-                    }
+                    } else { hBody.innerHTML = "<tr><td colspan='3'>No history found</td></tr>"; }
                 });
 
                 // Deposit Logic
@@ -253,23 +261,18 @@
                     const fileInput = document.getElementById('depProof');
                     if (amt < 50) return alert("Min Deposit Rs 50!");
                     if (!fileInput.files[0]) return alert("Select Screenshot!");
-
                     const btn = document.getElementById('submitDepBtn');
-                    btn.innerText = "UPLOADING...";
-                    btn.disabled = true;
-
+                    btn.innerText = "UPLOADING..."; btn.disabled = true;
                     try {
                         const formData = new FormData();
                         formData.append("image", fileInput.files[0]);
                         const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
                         const result = await res.json();
-
                         if (result.success) {
                             const depData = { uid: user.uid, amount: amt, status: 'pending', proofUrl: result.data.url, time: Date.now(), type: 'Deposit' };
                             await push(ref(db, 'transactions/' + user.uid), depData);
                             await push(ref(db, 'admin/deposits'), depData);
-                            alert("Request Sent!");
-                            closeModal('depositModal');
+                            alert("Request Sent!"); closeModal('depositModal');
                         }
                     } catch (e) { alert("Upload Failed!"); }
                     finally { btn.innerText = "SUBMIT DEPOSIT"; btn.disabled = false; }
@@ -281,12 +284,10 @@
                     const method = document.getElementById('witMethod').value;
                     const walletId = document.getElementById('witID').value;
                     if (amt < 100) return alert("Min Withdraw Rs 100!");
-                    
                     const witData = { type: 'Withdraw', amount: amt, status: 'pending', method: method, wallet: walletId, uid: user.uid, time: Date.now() };
                     push(ref(db, 'transactions/' + user.uid), witData);
                     push(ref(db, 'admin/withdraws'), witData);
-                    alert("Withdraw Request Sent!");
-                    closeModal('withdrawModal');
+                    alert("Withdraw Request Sent!"); closeModal('withdrawModal');
                 };
 
                 document.getElementById('saveProfileBtn').onclick = () => {
@@ -297,9 +298,7 @@
                 document.getElementById('logoutBtn').onclick = () => {
                     if(confirm("Logout?")) signOut(auth).then(() => window.location.href = "index.html");
                 };
-            } else {
-                window.location.href = "index.html";
-            }
+            } else { window.location.href = "index.html"; }
         });
     </script>
 </body>
