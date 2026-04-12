@@ -3,168 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RK Admin Panel | Global Connector</title>
+    <title>Game Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #1a252f; --accent: #f1c40f; --danger: #c0392b; --success: #27ae60; --sidebar-width: 250px; }
-        body { font-family: sans-serif; margin: 0; background: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
+        :root { --primary: #2c3e50; --gold: #f1c40f; --danger: #e74c3c; --success: #27ae60; }
+        body { font-family: sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 70px; overflow-x: hidden; }
         
-        .menu-toggle { display: none; position: fixed; top: 15px; left: 15px; z-index: 2001; background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
-        .sidebar { width: var(--sidebar-width); background: var(--primary); color: white; padding: 20px; box-sizing: border-box; transition: 0.3s; z-index: 2000; }
-        .sidebar h2 { color: var(--accent); font-size: 1.2rem; text-align: center; border-bottom: 1px solid #34495e; padding-bottom: 15px; }
-        .nav-link { display: block; color: #bdc3c7; padding: 12px; text-decoration: none; margin-bottom: 5px; border-radius: 5px; cursor: pointer; }
-        .nav-link:hover, .nav-link.active { background: #34495e; color: white; }
-
-        .main-content { flex: 1; overflow-y: auto; padding: 25px; transition: 0.3s; position: relative; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; overflow-x: auto; }
-        
-        @media (max-width: 768px) {
-            .menu-toggle { display: block; }
-            .sidebar { position: fixed; left: -250px; height: 100%; }
-            .sidebar.open { left: 0; }
-            .main-content { padding-top: 70px; }
-            .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1999; }
-            .overlay.active { display: block; }
+        /* Loading Overlay */
+        #loadingOverlay {
+            position: fixed; inset: 0; background: white; z-index: 9999;
+            display: flex; justify-content: center; align-items: center; font-weight: bold;
         }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: white; padding: 15px; border-radius: 10px; border-top: 4px solid var(--accent); text-align: center; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 0.85rem; }
-        
-        .action-btn { padding: 6px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 0.8rem; margin: 2px; }
-        .approve { background: var(--success); }
-        .reject { background: var(--danger); }
-        .edit-btn { background: #2980b9; }
-        .view-btn { background: var(--primary); padding: 4px 8px; font-size: 0.7rem; border-radius: 3px; color: white; border: none; cursor: pointer; display: block; margin-top: 5px; }
-        .hidden { display: none; }
-
-        .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); }
-        .modal-content { margin: auto; display: block; max-width: 90%; max-height: 80%; margin-top: 50px; border-radius: 10px; }
-        .close-modal { position: absolute; top: 20px; right: 35px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; }
-
-        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; box-sizing: border-box; }
-        .search-container { position: relative; margin-bottom: 15px; }
-        #userSearchInput { padding-left: 35px; border: 2px solid #34495e; }
+        .header { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .balance-box { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--gold); }
+        .customer-btn { font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
+        .game-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        .game-card img { width: 100%; height: 100px; object-fit: cover; }
+        .game-card h3 { margin: 8px 0; font-size: 0.9rem; }
+        .play-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 5px; margin-bottom: 10px; cursor: pointer; width: 80%; font-weight: bold; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 85%; padding: 20px; border-radius: 15px; text-align: center; position: relative; }
+        .support-links a { display: block; padding: 12px; margin: 10px 0; text-decoration: none; color: white; border-radius: 8px; font-weight: bold; }
+        .wheel-outer { position: relative; width: 220px; height: 220px; margin: 20px auto; }
+        .wheel-container { width: 100%; height: 100%; border: 8px solid #333; border-radius: 50%; position: relative; overflow: hidden; background: #fff; transform: rotate(0deg); }
+        .wheel-img { width: 100%; height: 100%; position: absolute; border-radius: 50%; background: conic-gradient(#e74c3c 0deg 60deg, #f1c40f 60deg 120deg, #27ae60 120deg 180deg, #2980b9 180deg 240deg, #8e44ad 240deg 300deg, #e67e22 300deg 360deg); }
+        .number { position: absolute; width: 100%; height: 100%; text-align: center; color: white; font-weight: bold; font-size: 1.2rem; padding-top: 10px; transform-origin: 50% 50%; }
+        .n1 { transform: rotate(30deg); } .n2 { transform: rotate(90deg); } .n3 { transform: rotate(150deg); } .n4 { transform: rotate(210deg); } .n5 { transform: rotate(270deg); } .n6 { transform: rotate(330deg); }
+        .needle { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #333; z-index: 2050; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
+        .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        input { width: 90%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-    <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-
-    <div id="imgModal" class="modal">
-        <span class="close-modal" onclick="closeImg()">&times;</span>
-        <img class="modal-content" id="modalImg">
+    <div id="loadingOverlay">
+        <div><i class="fas fa-spinner fa-spin"></i> Loading Dashboard...</div>
     </div>
 
-    <div class="sidebar" id="sidebar">
-        <h2>RK ADMIN PANEL</h2>
-        <div class="nav-link active" onclick="showSection('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
-        <div class="nav-link" onclick="showSection('deposits')"><i class="fas fa-wallet"></i> Deposits</div>
-        <div class="nav-link" onclick="showSection('withdraws')"><i class="fas fa-university"></i> Withdraws</div>
-        <div class="nav-link" onclick="showSection('matches')"><i class="fas fa-gamepad"></i> Match Results</div>
-        <div class="nav-link" onclick="showSection('users')"><i class="fas fa-users"></i> Users</div>
-        <div class="nav-link" onclick="showSection('settings')"><i class="fas fa-cog"></i> Settings</div>
-    </div>
-
-    <div class="main-content">
-        <div id="section-dashboard">
-            <h1>नमस्कार, RK!</h1>
-            <div class="stats-grid">
-                <div class="stat-card"><h3>कुल युजर</h3><p id="stat-totalUsers">0</p></div>
-                <div class="stat-card"><h3>डिपोजिट पेन्डिङ</h3><p id="stat-pendingDeposit">0</p></div>
-                <div class="stat-card"><h3>विथड्र पेन्डिङ</h3><p id="stat-pendingWithdraw">0</p></div>
-                <div class="stat-card"><h3>नतिजा पेन्डिङ</h3><p id="stat-pendingMatch">0</p></div>
-            </div>
+    <header class="header">
+        <div class="customer-btn" onclick="toggleModal('supportModal')">
+            <i class="fas fa-headset"></i> Support
         </div>
-
-        <div id="section-withdraws" class="hidden">
-            <h1>Withdraw Requests</h1>
-            <div class="card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User ID</th>
-                            <th>Method</th>
-                            <th>Wallet ID</th>
-                            <th>Amount</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="withdrawListBody"></tbody>
-                </table>
-            </div>
+        <div class="balance-box">
+            <i class="fas fa-wallet" style="color: var(--gold);"></i> रू <span id="userBalance">0.00</span>
         </div>
+    </header>
 
-        <div id="section-deposits" class="hidden">
-            <h1>Deposit Requests</h1>
-            <div class="card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User ID</th>
-                            <th>Amount</th>
-                            <th>Proof</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="depositListBody"></tbody>
-                </table>
-            </div>
-        </div>
+    <main class="game-grid">
+        <div class="game-card"><img src="https://i.ibb.co/GvfdCh8y/images.jpg"><h3>Ludo King</h3><button class="play-btn" onclick="openMatchModal('Ludo King')">Play Now</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/chgx7WP7/download.jpg"><h3>PUBG</h3><button class="play-btn" onclick="openMatchModal('PUBG')">Play Now</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/HT41RmqB/images-3.jpg"><h3>Free Fire</h3><button class="play-btn" onclick="openMatchModal('Free Fire')">Play Now</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/YBnVSZV1/download-1.jpg"><h3>Carrom</h3><button class="play-btn" onclick="openMatchModal('Carrom')">Play Now</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/397kdSqt/1775469473110.png"><h3>Spin</h3><button class="play-btn" onclick="openSpinModal('normal')">Spin (रू 5)</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/cchmBptQ/1775469646433.png"><h3>Big Spin</h3><button class="play-btn" onclick="openSpinModal('big')">Big Spin (रू 10)</button></div>
+    </main>
 
-        <div id="section-matches" class="hidden">
-            <h1>Match Results Approval</h1>
-            <div class="card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Game & Prize</th>
-                            <th>Proofs (C vs J)</th>
-                            <th>Winner & Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="matchListBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="section-users" class="hidden">
-            <h1>Manage Users</h1>
-            <div class="search-container">
-                <input type="text" id="userSearchInput" placeholder="User ID वा नामबाट सर्च..." onkeyup="searchUser()">
-            </div>
-            <div class="card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>UID</th>
-                            <th>Name</th>
-                            <th>Balance</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="userListBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="section-settings" class="hidden">
-            <h1>App Settings</h1>
-            <div class="card">
-                <h3>App Link & Notice</h3>
-                <input type="text" id="appLinkInput" placeholder="App Download Link">
-                <textarea id="noticeText" rows="3" placeholder="Notice text..."></textarea>
-                <button class="action-btn approve" onclick="saveSettings()">Save All Settings</button>
+    <div id="supportModal" class="modal">
+        <div class="modal-content">
+            <h3>Customer Service</h3>
+            <div class="support-links">
+                <a href="https://wa.me/9744706803" target="_blank" style="background: #25D366;"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                <a href="https://t.me/watchads11" target="_blank" style="background: #0088cc;"><i class="fab fa-telegram"></i> Telegram</a>
+                <button onclick="toggleModal('supportModal')" class="play-btn" style="background:#555; width: 100%;">Close</button>
             </div>
         </div>
     </div>
+
+    <div id="matchModal" class="modal">
+        <div class="modal-content">
+            <h3 id="matchTitle">Create Match</h3>
+            <input type="number" id="entryAmount" placeholder="Entry Amount (Min 10)">
+            <input type="text" id="roomCode" placeholder="Room Code">
+            <p style="font-size: 0.75rem; color: #e74c3c; font-weight: bold;">Admin Commission: 15%</p>
+            <button id="createMatchBtn" class="play-btn" style="background: var(--success); width: 100%;">Create Match</button>
+            <button onclick="toggleModal('matchModal')" class="play-btn" style="background:#555; width: 100%; margin-top: 8px;">Cancel</button>
+        </div>
+    </div>
+
+    <div id="spinModal" class="modal">
+        <div class="modal-content">
+            <h3 id="spinDisplayTitle" style="margin-top: 0;">Lucky Spin</h3>
+            <div class="wheel-outer">
+                <div class="needle"></div>
+                <div class="wheel-container" id="wheelWrapper">
+                    <div class="wheel-img"></div>
+                    <div class="number n1">1</div><div class="number n2">2</div><div class="number n3">5</div>
+                    <div class="number n4">0</div><div class="number n5">10</div><div class="number n6">20</div>
+                </div>
+            </div>
+            <div id="spinResultText" style="margin: 15px; font-size: 1.3rem; font-weight: bold; color: var(--success); height: 30px;"></div>
+            <button id="spinStartBtn" class="play-btn" style="background: var(--success); width: 100%; font-size: 1.1rem;">START SPIN</button>
+            <button id="spinCloseBtn" onclick="toggleModal('spinModal')" class="play-btn" style="background:#555; width: 100%; margin-top: 8px;">Close</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item active"><i class="fas fa-home"></i><br>Home</a>
+        <a href="matches.html" class="nav-item"><i class="fas fa-gamepad"></i><br>Matches</a>
+        <a href="notice.html" class="nav-item"><i class="fas fa-bullhorn"></i><br>Notice</a>
+        <a href="profile.html" class="nav-item"><i class="fas fa-user"></i><br>Profile</a>
+    </nav>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, update, remove, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, onValue, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+        // अपडेटेड नयाँ API Key
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
             authDomain: "ludo-king-b051a.firebaseapp.com",
@@ -175,216 +124,116 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getDatabase(app);
 
-        window.toggleSidebar = () => {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('overlay').classList.toggle('active');
-        };
+        let currentBalance = 0;
+        let spinning = false;
+        let totalRotation = 0;
+        let selectedGame = "";
 
-        window.showSection = (id) => {
-            document.querySelectorAll('.main-content > div').forEach(div => div.classList.add('hidden'));
-            document.getElementById('section-' + id).classList.remove('hidden');
-            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-            if(event) event.currentTarget.classList.add('active');
-            if (window.innerWidth <= 768) toggleSidebar();
-        };
+        window.toggleModal = (id) => {
+            if(spinning) return;
+            const m = document.getElementById(id);
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+        }
 
-        window.viewImg = (url) => {
-            if(!url || url === "undefined") return alert("नो स्क्रिनसट!");
-            document.getElementById('modalImg').src = url;
-            document.getElementById('imgModal').style.display = "block";
-        };
-        window.closeImg = () => document.getElementById('imgModal').style.display = "none";
+        window.openMatchModal = (game) => {
+            selectedGame = game;
+            document.getElementById('matchTitle').innerText = game + " Match";
+            toggleModal('matchModal');
+        }
 
-        // 1. Fetch Users
-        onValue(ref(db, 'users'), (snapshot) => {
-            const data = snapshot.val();
-            const list = document.getElementById('userListBody');
-            list.innerHTML = "";
-            let uCount = 0;
-            if(data) {
-                Object.keys(data).forEach(uid => {
-                    uCount++;
-                    const u = data[uid];
-                    list.innerHTML += `<tr>
-                        <td>${uid}</td>
-                        <td>${u.name || 'User'}</td>
-                        <td>रू ${u.balance || 0}</td>
-                        <td>
-                            <button class="action-btn edit-btn" onclick="editBalance('${uid}', ${u.balance || 0})">Edit</button>
-                            <button class="action-btn reject" onclick="deleteUser('${uid}')"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>`;
-                });
-            }
-            document.getElementById('stat-totalUsers').innerText = uCount;
-        });
+        window.openSpinModal = (type) => {
+            const fee = (type === 'normal') ? 5 : 10;
+            document.getElementById('spinDisplayTitle').innerText = (type === 'normal') ? "Normal Spin (रू 5)" : "Big Spin (रू 10)";
+            document.getElementById('spinResultText').innerText = "";
+            document.getElementById('spinStartBtn').onclick = () => startSpinProcess(type, fee);
+            toggleModal('spinModal');
+        }
 
-        // 2. Withdrawal Requests Logic (Fixed for Balance Update)
-        onValue(ref(db, 'admin/withdraws'), (snapshot) => {
-            const data = snapshot.val();
-            const list = document.getElementById('withdrawListBody');
-            list.innerHTML = "";
-            let wCount = 0;
-            if(data) {
-                Object.keys(data).forEach(id => {
-                    const w = data[id];
-                    if(w.status === 'pending') {
-                        wCount++;
-                        list.innerHTML += `<tr>
-                            <td>${w.uid}</td>
-                            <td><b style="color:var(--blue)">${w.method.toUpperCase()}</b></td>
-                            <td>${w.wallet}</td>
-                            <td>रू ${w.amount}</td>
-                            <td>
-                                <button class="action-btn approve" onclick="processWithdraw('${id}', '${w.uid}', 'approved', ${w.amount})">Approve</button>
-                                <button class="action-btn reject" onclick="processWithdraw('${id}', '${w.uid}', 'rejected', ${w.amount})">Reject</button>
-                            </td>
-                        </tr>`;
+        onAuthStateChanged(auth, (user) => {
+            const loader = document.getElementById('loadingOverlay');
+            if (user) {
+                loader.style.display = 'none'; // लगइन भएपछि लोडर हटाउने
+                const userRef = ref(db, 'users/' + user.uid);
+                onValue(userRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        currentBalance = data.balance || 0;
+                        document.getElementById('userBalance').innerText = currentBalance.toFixed(2);
                     }
                 });
-            }
-            document.getElementById('stat-pendingWithdraw').innerText = wCount;
-        });
 
-        window.processWithdraw = (wid, uid, status, amount = 0) => {
-            if(confirm(`${status} गर्ने निश्चित हुनुहुन्छ?`)) {
-                if(status === 'approved') {
-                    // Approve गर्दा युजरको ब्यालेन्सबाट पैसा काट्ने
-                    get(ref(db, `users/${uid}/balance`)).then(snap => {
-                        const currentBal = snap.val() || 0;
-                        if(currentBal >= parseFloat(amount)) {
-                            const newBal = currentBal - parseFloat(amount);
-                            const updates = {};
-                            updates[`users/${uid}/balance`] = Number(newBal.toFixed(2));
-                            updates[`admin/withdraws/${wid}/status`] = 'approved';
-                            updates[`transactions/${uid}/${wid}/status`] = 'approved';
-                            
-                            update(ref(db), updates).then(() => alert("Approve सफल! युजरको ब्यालेन्स काटियो।"));
-                        } else {
-                            alert("युजरको ब्यालेन्स अपुग छ! विथड्र एप्रुभ गर्न सकिएन।");
-                        }
-                    });
-                } else if(status === 'rejected') {
-                    // Reject गर्दा मात्र स्टाटस परिवर्तन गर्ने (किनकि पैसा पहिले नै काटिएको छैन)
+                document.getElementById('createMatchBtn').onclick = () => {
+                    const amt = parseFloat(document.getElementById('entryAmount').value);
+                    const code = document.getElementById('roomCode').value;
+                    if (amt < 10 || isNaN(amt)) return alert("Min रू 10!");
+                    if (!code) return alert("Room Code required!");
+                    if (currentBalance < amt) return alert("Insufficient balance!");
+
+                    const newMatchKey = push(ref(db, 'matches')).key;
+                    const matchData = {
+                        game: selectedGame,
+                        entry: amt,
+                        prize: parseFloat((amt * 1.85).toFixed(2)),
+                        roomCode: code,
+                        creatorId: user.uid,
+                        status: 'open',
+                        time: Date.now()
+                    };
+
                     const updates = {};
-                    updates[`admin/withdraws/${wid}/status`] = 'rejected';
-                    updates[`transactions/${uid}/${wid}/status`] = 'rejected';
-                    update(ref(db), updates).then(() => alert("विथड्र रिजेक्ट गरियो।"));
-                }
-            }
-        };
+                    updates['/matches/' + newMatchKey] = matchData;
+                    updates['/users/' + user.uid + '/balance'] = currentBalance - amt;
 
-        // 3. Deposit Logic
-        onValue(ref(db, 'admin/deposits'), (snapshot) => {
-            const data = snapshot.val();
-            const list = document.getElementById('depositListBody');
-            list.innerHTML = "";
-            let dCount = 0;
-            if(data) {
-                Object.keys(data).forEach(id => {
-                    const d = data[id];
-                    if(d.status === 'pending') {
-                        dCount++;
-                        list.innerHTML += `<tr>
-                            <td>${d.uid}</td>
-                            <td>रू ${d.amount}</td>
-                            <td><button class="view-btn" onclick="viewImg('${d.proofUrl}')">View</button></td>
-                            <td>
-                                <button class="action-btn approve" onclick="approveDeposit('${id}', '${d.uid}', ${d.amount})">Approve</button>
-                                <button class="action-btn reject" onclick="rejectReq('admin/deposits', '${id}', '${d.uid}')">Reject</button>
-                            </td>
-                        </tr>`;
-                    }
-                });
+                    update(ref(db), updates).then(() => {
+                        alert("Match Created Successfully!");
+                        document.getElementById('entryAmount').value = "";
+                        document.getElementById('roomCode').value = "";
+                        toggleModal('matchModal');
+                    }).catch(err => alert("Error: " + err.message));
+                };
+            } else {
+                window.location.href = "index.html"; // लगइन नभएमा होमपेजमा पठाउने
             }
-            document.getElementById('stat-pendingDeposit').innerText = dCount;
         });
 
-        window.approveDeposit = (did, uid, amt) => {
-            get(ref(db, `users/${uid}/balance`)).then(snap => {
-                const bal = snap.val() || 0;
-                const updates = {};
-                updates[`users/${uid}/balance`] = bal + parseFloat(amt);
-                updates[`admin/deposits/${did}/status`] = 'approved';
-                updates[`transactions/${uid}/${did}/status`] = 'approved';
-                update(ref(db), updates).then(() => alert("डिपोजिट एप्रुभ भयो!"));
-            });
-        };
+        async function startSpinProcess(type, fee) {
+            if(spinning) return;
+            if(currentBalance < fee) return alert("यो खेल्न ब्यालेन्स पुगेन!");
+            
+            spinning = true;
+            const user = auth.currentUser;
+            const wheel = document.getElementById('wheelWrapper');
+            const btn = document.getElementById('spinStartBtn');
+            const closeBtn = document.getElementById('spinCloseBtn');
+            
+            await update(ref(db, 'users/' + user.uid), { balance: currentBalance - fee });
 
-        // 4. Match Results Approval
-        onValue(ref(db, 'matches'), (snapshot) => {
-            const data = snapshot.val();
-            const list = document.getElementById('matchListBody');
-            list.innerHTML = "";
-            let mCount = 0;
-            if(data) {
-                Object.keys(data).forEach(id => {
-                    const m = data[id];
-                    if(m.status === 'result' || m.status === 'dispute') {
-                        mCount++;
-                        list.innerHTML += `<tr>
-                            <td><b>${m.game}</b><br>रू ${m.prize}</td>
-                            <td>
-                                <button class="view-btn" onclick="viewImg('${m.creatorProof}')">C-Proof</button>
-                                <button class="view-btn" onclick="viewImg('${m.joinerProof}')">J-Proof</button>
-                            </td>
-                            <td>
-                                <select id="win_${id}">
-                                    <option value="${m.creatorId}">Creator</option>
-                                    <option value="${m.joinerId}">Joiner</option>
-                                </select>
-                                <button class="action-btn approve" onclick="approveWin('${id}', ${m.prize})">Pay</button>
-                            </td>
-                        </tr>`;
-                    }
-                });
-            }
-            document.getElementById('stat-pendingMatch').innerText = mCount;
-        });
+            btn.style.visibility = "hidden";
+            closeBtn.style.visibility = "hidden";
+            document.getElementById('spinResultText').innerText = "घुम्दैछ...";
 
-        window.approveWin = (mid, prize) => {
-            const winId = document.getElementById('win_'+mid).value;
-            get(ref(db, `users/${winId}/balance`)).then(snap => {
-                const bal = snap.val() || 0;
-                const updates = {};
-                updates[`users/${winId}/balance`] = bal + parseFloat(prize);
-                updates[`matches/${mid}/status`] = 'completed';
-                updates[`matches/${mid}/winnerId`] = winId;
-                update(ref(db), updates).then(() => alert("Winner Paid!"));
-            });
-        };
+            const addedRotation = Math.floor(Math.random() * 360) + 2160; 
+            totalRotation += addedRotation; 
+            wheel.style.transition = "transform 4s cubic-bezier(0.15, 0, 0.15, 1)";
+            wheel.style.transform = `rotate(${totalRotation}deg)`;
 
-        // Search User
-        window.searchUser = () => {
-            const input = document.getElementById('userSearchInput').value.toLowerCase();
-            const rows = document.getElementById('userListBody').getElementsByTagName('tr');
-            for (let row of rows) {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(input) ? "" : "none";
-            }
-        };
+            setTimeout(() => {
+                let win = 0;
+                const prizes = [1, 2, 5, 0, 10, 20];
+                win = prizes[Math.floor(Math.random() * prizes.length)];
 
-        // Utility Functions
-        window.editBalance = (uid, bal) => {
-            const n = prompt("नयाँ ब्यालेन्स हाल्नुहोस्:", bal);
-            if(n) update(ref(db, `users/${uid}`), { balance: parseFloat(n) });
-        };
-        window.deleteUser = (uid) => { if(confirm("डिलेट?")) remove(ref(db, `users/${uid}`)); };
-        window.saveSettings = () => {
-            set(ref(db, 'settings/downloadLink'), document.getElementById('appLinkInput').value);
-            set(ref(db, 'settings/notice'), { text: document.getElementById('noticeText').value, date: new Date().toLocaleDateString() });
-            alert("Settings Saved!");
-        };
-        window.rejectReq = (path, id, uid) => { 
-            if(confirm("Reject गर्ने?")) {
-                const updates = {};
-                updates[`${path}/${id}/status`] = 'rejected';
-                updates[`transactions/${uid}/${id}/status`] = 'rejected';
-                update(ref(db), updates); 
-            }
-        };
+                update(ref(db, 'users/' + user.uid), { balance: (currentBalance - fee) + win });
+                document.getElementById('spinResultText').innerText = "जित: रू " + win;
+                
+                spinning = false;
+                btn.style.visibility = "visible";
+                closeBtn.style.visibility = "visible";
+                btn.innerText = "फेरि खेल्नुहोस्";
+            }, 4000);
+        }
     </script>
 </body>
 </html>
