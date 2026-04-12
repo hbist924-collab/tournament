@@ -43,24 +43,8 @@
         .modal-content { margin: auto; display: block; max-width: 90%; max-height: 80%; margin-top: 50px; border-radius: 10px; }
         .close-modal { position: absolute; top: 20px; right: 35px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; }
 
-        .proof-container { display: flex; gap: 10px; }
-        .proof-box { background: #f9f9f9; padding: 8px; border-radius: 5px; border: 1px solid #ddd; flex: 1; }
-        .proof-box b { color: var(--primary); font-size: 0.75rem; display: block; margin-bottom: 3px; }
-
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; box-sizing: border-box; }
-        
-        .select-winner { 
-            padding: 8px; 
-            margin-bottom: 5px; 
-            font-size: 0.85rem; 
-            font-weight: bold; 
-            border: 2px solid var(--primary); 
-            background-color: #fff;
-            cursor: pointer;
-        }
-
         .search-container { position: relative; margin-bottom: 15px; }
-        .search-container i { position: absolute; left: 12px; top: 24px; color: #777; }
         #userSearchInput { padding-left: 35px; border: 2px solid #34495e; }
     </style>
 </head>
@@ -77,10 +61,11 @@
     <div class="sidebar" id="sidebar">
         <h2>RK ADMIN PANEL</h2>
         <div class="nav-link active" onclick="showSection('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
-        <div class="nav-link" onclick="showSection('deposits')"><i class="fas fa-wallet"></i> Deposit Requests</div>
+        <div class="nav-link" onclick="showSection('deposits')"><i class="fas fa-wallet"></i> Deposits</div>
+        <div class="nav-link" onclick="showSection('withdraws')"><i class="fas fa-university"></i> Withdraws</div>
         <div class="nav-link" onclick="showSection('matches')"><i class="fas fa-gamepad"></i> Match Results</div>
-        <div class="nav-link" onclick="showSection('users')"><i class="fas fa-users"></i> User List</div>
-        <div class="nav-link" onclick="showSection('settings')"><i class="fas fa-cog"></i> App Settings</div>
+        <div class="nav-link" onclick="showSection('users')"><i class="fas fa-users"></i> Users</div>
+        <div class="nav-link" onclick="showSection('settings')"><i class="fas fa-cog"></i> Settings</div>
     </div>
 
     <div class="main-content">
@@ -89,7 +74,26 @@
             <div class="stats-grid">
                 <div class="stat-card"><h3>कुल युजर</h3><p id="stat-totalUsers">0</p></div>
                 <div class="stat-card"><h3>डिपोजिट पेन्डिङ</h3><p id="stat-pendingDeposit">0</p></div>
+                <div class="stat-card"><h3>विथड्र पेन्डिङ</h3><p id="stat-pendingWithdraw">0</p></div>
                 <div class="stat-card"><h3>नतिजा पेन्डिङ</h3><p id="stat-pendingMatch">0</p></div>
+            </div>
+        </div>
+
+        <div id="section-withdraws" class="hidden">
+            <h1>Withdraw Requests</h1>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Method</th>
+                            <th>Wallet ID</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdrawListBody"></tbody>
+                </table>
             </div>
         </div>
 
@@ -117,8 +121,8 @@
                     <thead>
                         <tr>
                             <th>Game & Prize</th>
-                            <th>Proofs (Creator vs Joiner)</th>
-                            <th>Choose Winner & Action</th>
+                            <th>Proofs (C vs J)</th>
+                            <th>Winner & Action</th>
                         </tr>
                     </thead>
                     <tbody id="matchListBody"></tbody>
@@ -129,14 +133,13 @@
         <div id="section-users" class="hidden">
             <h1>Manage Users</h1>
             <div class="search-container">
-                <i class="fas fa-search"></i>
-                <input type="text" id="userSearchInput" placeholder="User ID (UID) वा नामबाट सर्च गर्नुहोस्..." onkeyup="searchUser()">
+                <input type="text" id="userSearchInput" placeholder="User ID वा नामबाट सर्च..." onkeyup="searchUser()">
             </div>
             <div class="card">
                 <table>
                     <thead>
                         <tr>
-                            <th>User ID (UID)</th>
+                            <th>UID</th>
                             <th>Name</th>
                             <th>Balance</th>
                             <th>Action</th>
@@ -150,14 +153,10 @@
         <div id="section-settings" class="hidden">
             <h1>App Settings</h1>
             <div class="card">
-                <h3>App Link</h3>
-                <input type="text" id="appLinkInput">
-                <button class="action-btn approve" onclick="saveAppLink()">Save Link</button>
-            </div>
-            <div class="card">
-                <h3>Post Notice</h3>
-                <textarea id="noticeText" rows="3"></textarea>
-                <button class="action-btn approve" onclick="postNotice()">Update Notice</button>
+                <h3>App Link & Notice</h3>
+                <input type="text" id="appLinkInput" placeholder="App Download Link">
+                <textarea id="noticeText" rows="3" placeholder="Notice text..."></textarea>
+                <button class="action-btn approve" onclick="saveSettings()">Save All Settings</button>
             </div>
         </div>
     </div>
@@ -186,46 +185,19 @@
         window.showSection = (id) => {
             document.querySelectorAll('.main-content > div').forEach(div => div.classList.add('hidden'));
             document.getElementById('section-' + id).classList.remove('hidden');
-            if (window.innerWidth <= 768) toggleSidebar();
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
             if(event) event.currentTarget.classList.add('active');
+            if (window.innerWidth <= 768) toggleSidebar();
         };
 
         window.viewImg = (url) => {
-            if(!url || url === "undefined" || url === "null" || url === "") return alert("खेलाडीले प्रुफ हालेको छैन!");
+            if(!url || url === "undefined") return alert("नो स्क्रिनसट!");
             document.getElementById('modalImg').src = url;
             document.getElementById('imgModal').style.display = "block";
         };
         window.closeImg = () => document.getElementById('imgModal').style.display = "none";
 
-        // User Search Functionality
-        window.searchUser = () => {
-            let input = document.getElementById('userSearchInput').value.toLowerCase();
-            let table = document.getElementById('userListBody');
-            let tr = table.getElementsByTagName('tr');
-            for (let i = 0; i < tr.length; i++) {
-                let idColumn = tr[i].getElementsByTagName('td')[0].innerText.toLowerCase();
-                let nameColumn = tr[i].getElementsByTagName('td')[1].innerText.toLowerCase();
-                if (idColumn.includes(input) || nameColumn.includes(input)) {
-                    tr[i].style.display = "";
-                } else {
-                    tr[i].style.display = "none";
-                }
-            }
-        };
-
-        // Manual Balance Edit System
-        window.editBalance = (uid, currentBalance) => {
-            const newBalance = prompt(`युजर (${uid}) को नयाँ ब्यालेन्स सेट गर्नुहोस्:`, currentBalance);
-            if (newBalance !== null && !isNaN(newBalance)) {
-                update(ref(db, `users/${uid}`), { balance: Number(parseFloat(newBalance).toFixed(2)) })
-                .then(() => alert("ब्यालेन्स अपडेट भयो!"));
-            } else if (newBalance !== null) {
-                alert("कृपया सही नम्बर हाल्नुहोस्।");
-            }
-        };
-
-        // Fetch Users
+        // 1. Fetch Users
         onValue(ref(db, 'users'), (snapshot) => {
             const data = snapshot.val();
             const list = document.getElementById('userListBody');
@@ -235,13 +207,12 @@
                 Object.keys(data).forEach(uid => {
                     uCount++;
                     const u = data[uid];
-                    const balance = u.balance || 0;
                     list.innerHTML += `<tr>
-                        <td style="font-family: monospace; color: #2980b9;">${uid}</td>
+                        <td>${uid}</td>
                         <td>${u.name || 'User'}</td>
-                        <td>रू ${balance}</td>
+                        <td>रू ${u.balance || 0}</td>
                         <td>
-                            <button class="action-btn edit-btn" onclick="editBalance('${uid}', ${balance})"><i class="fas fa-coins"></i> Edit</button>
+                            <button class="action-btn edit-btn" onclick="editBalance('${uid}', ${u.balance || 0})">Edit</button>
                             <button class="action-btn reject" onclick="deleteUser('${uid}')"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>`;
@@ -250,56 +221,62 @@
             document.getElementById('stat-totalUsers').innerText = uCount;
         });
 
-        // Match Results Approval
-        onValue(ref(db, 'matches'), (snapshot) => {
+        // 2. Withdrawal Requests Logic (Fixed for Balance Update)
+        onValue(ref(db, 'admin/withdraws'), (snapshot) => {
             const data = snapshot.val();
-            const list = document.getElementById('matchListBody');
+            const list = document.getElementById('withdrawListBody');
             list.innerHTML = "";
-            let count = 0;
+            let wCount = 0;
             if(data) {
                 Object.keys(data).forEach(id => {
-                    const m = data[id];
-                    if(m.status === 'result' || m.status === 'rejected') {
-                        if(m.status === 'result') count++;
-                        const isRejected = m.status === 'rejected';
-                        list.innerHTML += `<tr ${isRejected ? 'style="background: #fff5f5;"' : ''}>
-                            <td><b>${m.game}</b> ${isRejected ? '<span style="color:red;">[REJ]</span>' : ''}<br>Prize: रू ${m.prize}</td>
+                    const w = data[id];
+                    if(w.status === 'pending') {
+                        wCount++;
+                        list.innerHTML += `<tr>
+                            <td>${w.uid}</td>
+                            <td><b style="color:var(--blue)">${w.method.toUpperCase()}</b></td>
+                            <td>${w.wallet}</td>
+                            <td>रू ${w.amount}</td>
                             <td>
-                                <div class="proof-container">
-                                    <div class="proof-box"><b>C:</b> <button class="view-btn" onclick="viewImg('${m.creatorProof}')">View</button></div>
-                                    <div class="proof-box"><b>J:</b> <button class="view-btn" onclick="viewImg('${m.joinerProof}')">View</button></div>
-                                </div>
-                            </td>
-                            <td>
-                                <select class="select-winner" id="winner_select_${id}">
-                                    <option value="${m.creatorId}">Creator</option>
-                                    <option value="${m.joinerId}">Joiner</option>
-                                </select>
-                                <button class="action-btn approve" onclick="processWinApproval('${id}', ${m.prize})">Approve</button>
-                                ${!isRejected ? `<button class="action-btn reject" onclick="rejectReq('matches', '${id}')">Reject</button>` : `<button class="action-btn view-btn" style="background:#7f8c8d" onclick="revertToPending('${id}')">Undo</button>`}
+                                <button class="action-btn approve" onclick="processWithdraw('${id}', '${w.uid}', 'approved', ${w.amount})">Approve</button>
+                                <button class="action-btn reject" onclick="processWithdraw('${id}', '${w.uid}', 'rejected', ${w.amount})">Reject</button>
                             </td>
                         </tr>`;
                     }
                 });
             }
-            document.getElementById('stat-pendingMatch').innerText = count;
+            document.getElementById('stat-pendingWithdraw').innerText = wCount;
         });
 
-        window.processWinApproval = (mid, prize) => {
-            const winnerId = document.getElementById(`winner_select_${mid}`).value;
-            if(confirm(`विजेतालाई रू ${prize} भुक्तानी गर्ने हो?`)) {
-                get(ref(db, `users/${winnerId}/balance`)).then((snap) => {
-                    const current = snap.val() || 0;
+        window.processWithdraw = (wid, uid, status, amount = 0) => {
+            if(confirm(`${status} गर्ने निश्चित हुनुहुन्छ?`)) {
+                if(status === 'approved') {
+                    // Approve गर्दा युजरको ब्यालेन्सबाट पैसा काट्ने
+                    get(ref(db, `users/${uid}/balance`)).then(snap => {
+                        const currentBal = snap.val() || 0;
+                        if(currentBal >= parseFloat(amount)) {
+                            const newBal = currentBal - parseFloat(amount);
+                            const updates = {};
+                            updates[`users/${uid}/balance`] = Number(newBal.toFixed(2));
+                            updates[`admin/withdraws/${wid}/status`] = 'approved';
+                            updates[`transactions/${uid}/${wid}/status`] = 'approved';
+                            
+                            update(ref(db), updates).then(() => alert("Approve सफल! युजरको ब्यालेन्स काटियो।"));
+                        } else {
+                            alert("युजरको ब्यालेन्स अपुग छ! विथड्र एप्रुभ गर्न सकिएन।");
+                        }
+                    });
+                } else if(status === 'rejected') {
+                    // Reject गर्दा मात्र स्टाटस परिवर्तन गर्ने (किनकि पैसा पहिले नै काटिएको छैन)
                     const updates = {};
-                    updates[`users/${winnerId}/balance`] = Number((current + parseFloat(prize)).toFixed(2));
-                    updates[`matches/${mid}/status`] = 'completed';
-                    updates[`matches/${mid}/winnerId`] = winnerId;
-                    update(ref(db), updates).then(() => alert("Winner Paid!"));
-                });
+                    updates[`admin/withdraws/${wid}/status`] = 'rejected';
+                    updates[`transactions/${uid}/${wid}/status`] = 'rejected';
+                    update(ref(db), updates).then(() => alert("विथड्र रिजेक्ट गरियो।"));
+                }
             }
         };
 
-        // Deposit Approval
+        // 3. Deposit Logic
         onValue(ref(db, 'admin/deposits'), (snapshot) => {
             const data = snapshot.val();
             const list = document.getElementById('depositListBody');
@@ -308,16 +285,15 @@
             if(data) {
                 Object.keys(data).forEach(id => {
                     const d = data[id];
-                    if(d.status && d.status.toLowerCase() === 'pending') {
+                    if(d.status === 'pending') {
                         dCount++;
-                        const userId = d.uid || d.userId || "Unknown";
                         list.innerHTML += `<tr>
-                            <td>${userId}</td>
+                            <td>${d.uid}</td>
                             <td>रू ${d.amount}</td>
-                            <td><button class="action-btn view-btn" onclick="viewImg('${d.proofUrl}')">Screenshot</button></td>
+                            <td><button class="view-btn" onclick="viewImg('${d.proofUrl}')">View</button></td>
                             <td>
-                                <button class="action-btn approve" onclick="processDeposit('${id}', '${userId}', ${d.amount})">Approve</button>
-                                <button class="action-btn reject" onclick="rejectReq('admin/deposits', '${id}')">Reject</button>
+                                <button class="action-btn approve" onclick="approveDeposit('${id}', '${d.uid}', ${d.amount})">Approve</button>
+                                <button class="action-btn reject" onclick="rejectReq('admin/deposits', '${id}', '${d.uid}')">Reject</button>
                             </td>
                         </tr>`;
                     }
@@ -326,20 +302,89 @@
             document.getElementById('stat-pendingDeposit').innerText = dCount;
         });
 
-        window.processDeposit = (did, uid, amt) => {
-            get(ref(db, `users/${uid}/balance`)).then((snap) => {
-                const current = snap.val() || 0;
-                update(ref(db, `users/${uid}`), { balance: Number((current + parseFloat(amt)).toFixed(2)) });
-                update(ref(db, `admin/deposits/${did}`), { status: 'approved' });
-                alert("Approved!");
+        window.approveDeposit = (did, uid, amt) => {
+            get(ref(db, `users/${uid}/balance`)).then(snap => {
+                const bal = snap.val() || 0;
+                const updates = {};
+                updates[`users/${uid}/balance`] = bal + parseFloat(amt);
+                updates[`admin/deposits/${did}/status`] = 'approved';
+                updates[`transactions/${uid}/${did}/status`] = 'approved';
+                update(ref(db), updates).then(() => alert("डिपोजिट एप्रुभ भयो!"));
             });
         };
 
-        window.rejectReq = (path, id) => { if(confirm("Reject गर्ने?")) update(ref(db, `${path}/${id}`), { status: 'rejected' }); };
-        window.revertToPending = (mid) => update(ref(db, `matches/${mid}`), { status: 'result' });
-        window.deleteUser = (uid) => { if(confirm("User डिलेट गर्ने?")) remove(ref(db, `users/${uid}`)); };
-        window.saveAppLink = () => set(ref(db, 'settings/downloadLink'), document.getElementById('appLinkInput').value).then(() => alert("Saved!"));
-        window.postNotice = () => set(ref(db, 'settings/notice'), { text: document.getElementById('noticeText').value, date: new Date().toLocaleDateString() }).then(() => alert("Updated!"));
+        // 4. Match Results Approval
+        onValue(ref(db, 'matches'), (snapshot) => {
+            const data = snapshot.val();
+            const list = document.getElementById('matchListBody');
+            list.innerHTML = "";
+            let mCount = 0;
+            if(data) {
+                Object.keys(data).forEach(id => {
+                    const m = data[id];
+                    if(m.status === 'result' || m.status === 'dispute') {
+                        mCount++;
+                        list.innerHTML += `<tr>
+                            <td><b>${m.game}</b><br>रू ${m.prize}</td>
+                            <td>
+                                <button class="view-btn" onclick="viewImg('${m.creatorProof}')">C-Proof</button>
+                                <button class="view-btn" onclick="viewImg('${m.joinerProof}')">J-Proof</button>
+                            </td>
+                            <td>
+                                <select id="win_${id}">
+                                    <option value="${m.creatorId}">Creator</option>
+                                    <option value="${m.joinerId}">Joiner</option>
+                                </select>
+                                <button class="action-btn approve" onclick="approveWin('${id}', ${m.prize})">Pay</button>
+                            </td>
+                        </tr>`;
+                    }
+                });
+            }
+            document.getElementById('stat-pendingMatch').innerText = mCount;
+        });
+
+        window.approveWin = (mid, prize) => {
+            const winId = document.getElementById('win_'+mid).value;
+            get(ref(db, `users/${winId}/balance`)).then(snap => {
+                const bal = snap.val() || 0;
+                const updates = {};
+                updates[`users/${winId}/balance`] = bal + parseFloat(prize);
+                updates[`matches/${mid}/status`] = 'completed';
+                updates[`matches/${mid}/winnerId`] = winId;
+                update(ref(db), updates).then(() => alert("Winner Paid!"));
+            });
+        };
+
+        // Search User
+        window.searchUser = () => {
+            const input = document.getElementById('userSearchInput').value.toLowerCase();
+            const rows = document.getElementById('userListBody').getElementsByTagName('tr');
+            for (let row of rows) {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            }
+        };
+
+        // Utility Functions
+        window.editBalance = (uid, bal) => {
+            const n = prompt("नयाँ ब्यालेन्स हाल्नुहोस्:", bal);
+            if(n) update(ref(db, `users/${uid}`), { balance: parseFloat(n) });
+        };
+        window.deleteUser = (uid) => { if(confirm("डिलेट?")) remove(ref(db, `users/${uid}`)); };
+        window.saveSettings = () => {
+            set(ref(db, 'settings/downloadLink'), document.getElementById('appLinkInput').value);
+            set(ref(db, 'settings/notice'), { text: document.getElementById('noticeText').value, date: new Date().toLocaleDateString() });
+            alert("Settings Saved!");
+        };
+        window.rejectReq = (path, id, uid) => { 
+            if(confirm("Reject गर्ने?")) {
+                const updates = {};
+                updates[`${path}/${id}/status`] = 'rejected';
+                updates[`transactions/${uid}/${id}/status`] = 'rejected';
+                update(ref(db), updates); 
+            }
+        };
     </script>
 </body>
 </html>
