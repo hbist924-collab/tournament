@@ -8,8 +8,8 @@
     <style>
         :root { --primary: #2c3e50; --gold: #f1c40f; --blue: #3498db; --success: #27ae60; --warning: #f39c12; --light: #ecf0f1; --danger: #e74c3c; }
         body { font-family: sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 80px; }
-        .tabs { display: flex; background: var(--primary); position: sticky; top: 0; z-index: 1000; }
-        .tab { flex: 1; color: #ccc; padding: 15px 0; text-align: center; cursor: pointer; font-weight: bold; font-size: 0.85rem; border-bottom: 3px solid transparent; }
+        .tabs { display: flex; background: var(--primary); position: sticky; top: 0; z-index: 1000; overflow-x: auto; }
+        .tab { flex: 1; color: #ccc; padding: 15px 10px; text-align: center; cursor: pointer; font-weight: bold; font-size: 0.75rem; border-bottom: 3px solid transparent; white-space: nowrap; }
         .tab.active { color: white; border-bottom: 3px solid var(--gold); }
         .container { padding: 15px; }
         .match-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 5px solid var(--blue); position: relative; }
@@ -25,6 +25,7 @@
         .win-btn { background: var(--success); }
         .loss-btn { background: var(--danger); }
         .chat-btn { background: #8e44ad; }
+        .cancel-btn { background: var(--danger); }
         .copy-btn { background: var(--primary); padding: 5px 10px; font-size: 0.7rem; border-radius: 3px; border: none; color: white; cursor: pointer; }
         
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
@@ -41,10 +42,11 @@
         .nav-item.active { color: var(--primary); font-weight: bold; }
     </style>
 </head>
-<body>
+<body onclick="enableAudio()"> 
 
     <div class="tabs">
         <div class="tab active" id="tab-open" onclick="showTab('open')">JOIN MATCH</div>
+        <div class="tab" id="tab-mine" onclick="showTab('mine')">MY MATCHES</div>
         <div class="tab" id="tab-waiting" onclick="showTab('waiting')">WAITING</div>
         <div class="tab" id="tab-result" onclick="showTab('result')">RESULT</div>
     </div>
@@ -85,7 +87,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, onValue, update, push, get, set, off, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, update, push, get, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
@@ -106,21 +108,36 @@
         let userUid = "";
         let activeChatId = "";
 
-        // --- Restriction Logic: Check if user has any pending proof ---
-        async function hasPendingMatch() {
-            const snapshot = await get(ref(db, 'matches'));
-            const data = snapshot.val();
-            if (!data) return false;
+        // --- Notification & Sound System ---
+        const joinSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        let audioPermission = false;
 
-            for (let key in data) {
-                const m = data[key];
-                // यदि युजर म्याचमा छ र स्टाटस 'waiting' छ र उसले क्लेम गरेको छैन भने
-                if (m.status === 'waiting' && (m.creatorId === userUid || m.joinerId === userUid)) {
-                    const myClaim = (m.creatorId === userUid) ? m.creator_claim : m.joiner_claim;
-                    if (!myClaim) return true; // प्रमाण बुझाउन बाँकी छ
-                }
+        // Enable Audio on first click
+        window.enableAudio = () => {
+            if (!audioPermission) {
+                joinSound.play().then(() => {
+                    joinSound.pause();
+                    joinSound.currentTime = 0;
+                    audioPermission = true;
+                }).catch(() => {});
             }
-            return false;
+        };
+
+        // Ask for notification permission once
+        function askPermission() {
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
+        function triggerAlert() {
+            if (audioPermission) joinSound.play();
+            if (Notification.permission === "granted") {
+                new Notification("Match Joined! 🎮", {
+                    body: "तपाईंको गेम कसैले जोइन गर्यो, छिटो गेम सुरु गर्नुहोस्!",
+                    icon: "https://cdn-icons-png.flaticon.com/512/1041/1041916.png"
+                });
+            }
         }
 
         window.showTab = (tabName) => {
@@ -135,6 +152,7 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 userUid = user.uid;
+                askPermission();
                 onValue(ref(db, `users/${user.uid}`), (snapshot) => {
                     userBalance = snapshot.val()?.balance || 0;
                 });
@@ -152,10 +170,18 @@
                 let hasMatches = false;
                 Object.keys(data).forEach(key => {
                     const match = data[key];
+
+                    // --- JOIN ALERT LOGIC ---
+                    if (match.creatorId === userUid && match.status === 'waiting' && !match.notified) {
+                        triggerAlert();
+                        update(ref(db, `matches/${key}`), { notified: true });
+                    }
+
                     let isVisible = false;
                     const myClaim = (match.creatorId === userUid) ? match.creator_claim : match.joiner_claim;
 
                     if (currentTab === 'open' && match.status === 'open' && match.creatorId !== userUid) isVisible = true;
+                    if (currentTab === 'mine' && match.status === 'open' && match.creatorId === userUid) isVisible = true;
                     if (currentTab === 'waiting' && match.status === 'waiting' && (match.creatorId === userUid || match.joinerId === userUid) && !myClaim) isVisible = true;
                     if (currentTab === 'result' && (match.creatorId === userUid || match.joinerId === userUid) && myClaim) isVisible = true;
 
@@ -167,6 +193,9 @@
                         if (currentTab === 'open') {
                             actionBtn = `<button class="action-btn join-btn" onclick="joinMatch('${key}', ${match.entry})">JOIN NOW</button>`;
                         } 
+                        else if (currentTab === 'mine') {
+                            actionBtn = `<button class="action-btn cancel-btn" onclick="cancelMatch('${key}', ${match.entry})">CANCEL MATCH</button>`;
+                        }
                         else if (currentTab === 'waiting') {
                             roomCodeHtml = `<div class="room-code-box"><span>Code: <b>${match.roomCode}</b></span><button class="copy-btn" onclick="copyCode('${match.roomCode}')">COPY</button></div>`;
                             actionBtn = `
@@ -176,11 +205,7 @@
                         } 
                         else if (currentTab === 'result') {
                             if (match.status === "completed") {
-                                if (match.winnerId === userUid) {
-                                    actionBtn = `<div class="status-badge" style="background:#e8f5e9; color:#27ae60; border: 1px solid #27ae60;"><i class="fas fa-trophy"></i> Result: WIN (Auto Paid)</div>`;
-                                } else {
-                                    actionBtn = `<div class="status-badge" style="background:#ffebee; color:#e74c3c; border: 1px solid #e74c3c;"><i class="fas fa-times-circle"></i> Result: LOSS</div>`;
-                                }
+                                actionBtn = `<div class="status-badge" style="background:${match.winnerId === userUid ? '#e8f5e9' : '#ffebee'}; color:${match.winnerId === userUid ? '#27ae60' : '#e74c3c'}; border: 1px solid ${match.winnerId === userUid ? '#27ae60' : '#e74c3c'};"><i class="fas ${match.winnerId === userUid ? 'fa-trophy' : 'fa-times-circle'}"></i> Result: ${match.winnerId === userUid ? 'WIN' : 'LOSS'}</div>`;
                             } else if (match.status === "dispute") {
                                 actionBtn = `<div class="status-badge" style="background:#fff3e0; color:#e67e22; border: 1px solid #e67e22;"><i class="fas fa-exclamation-triangle"></i> Dispute: Admin Checking</div>`;
                             } else {
@@ -189,7 +214,7 @@
                         }
 
                         container.innerHTML += `
-                            <div class="match-card" style="border-left-color: ${currentTab === 'open' ? '#3498db' : (currentTab === 'waiting' ? '#f39c12' : '#27ae60')}">
+                            <div class="match-card" style="border-left-color: ${currentTab === 'open' ? '#3498db' : (currentTab === 'mine' ? '#e74c3c' : (currentTab === 'waiting' ? '#f39c12' : '#27ae60'))}">
                                 <div class="match-header"><span class="game-name">${match.game}</span><span class="entry-fee">Fee: रू ${match.entry}</span></div>
                                 <div class="match-body"><b>Prize:</b> रू ${match.prize} <br>${roomCodeHtml}</div>
                                 <div class="btn-group">${actionBtn}</div>
@@ -200,90 +225,20 @@
             });
         }
 
-        window.openResultModal = (matchId, claim) => {
-            document.getElementById('uploadModal').style.display = 'flex';
-            document.getElementById('modalTitle').innerText = (claim === 'win') ? "Upload Winning Screenshot" : "Upload Loss Screenshot";
-            
-            document.getElementById('confirmProofBtn').onclick = async () => {
-                const fileInput = document.getElementById('proofFile');
-                if (fileInput.files.length === 0) return alert("कृपया Screenshot छान्नुहोस्!");
-
-                const submitBtn = document.getElementById('confirmProofBtn');
-                submitBtn.innerText = "Processing...";
-                submitBtn.disabled = true;
-
-                try {
-                    const formData = new FormData();
-                    formData.append("image", fileInput.files[0]);
-                    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const proofUrl = result.data.url;
-                        const matchRef = ref(db, `matches/${matchId}`);
-                        const matchSnap = await get(matchRef);
-                        const match = matchSnap.val();
-
-                        let updates = {};
-                        if (match.creatorId === userUid) {
-                            updates['creator_claim'] = claim;
-                            updates['creatorProof'] = proofUrl;
-                        } else {
-                            updates['joiner_claim'] = claim;
-                            updates['joinerProof'] = proofUrl;
-                        }
-
-                        await update(matchRef, updates);
-                        checkAutoPayment(matchId);
-                        
-                        alert("Result submitted successfully!");
-                        closeModal();
-                        showTab('result');
-                    } else { alert("Upload failed!"); }
-                } catch (e) { alert("Error: " + e.message); }
-                finally { submitBtn.innerText = "Submit & Continue"; submitBtn.disabled = false; }
-            };
+        window.cancelMatch = async (matchId, entryFee) => {
+            if (confirm("के तपाईं यो म्याच क्यान्सिल गर्न चाहनुहुन्छ?")) {
+                const userRef = ref(db, `users/${userUid}/balance`);
+                await runTransaction(userRef, (current) => (current || 0) + parseFloat(entryFee));
+                await remove(ref(db, `matches/${matchId}`));
+                alert("म्याच क्यान्सिल भयो।");
+            }
         };
 
-        async function checkAutoPayment(matchId) {
-            const matchRef = ref(db, `matches/${matchId}`);
-            const snap = await get(matchRef);
-            const m = snap.val();
-            if (m.creator_claim && m.joiner_claim && m.status === 'waiting') {
-                if (m.creator_claim === 'win' && m.joiner_claim === 'loss') {
-                    await finalizeMatch(matchId, m.creatorId, m.prize);
-                } else if (m.creator_claim === 'loss' && m.joiner_claim === 'win') {
-                    await finalizeMatch(matchId, m.joinerId, m.prize);
-                } else {
-                    await update(matchRef, { status: 'dispute' });
-                }
-            }
-        }
-
-        async function finalizeMatch(matchId, winnerId, prize) {
-            const winnerRef = ref(db, `users/${winnerId}/balance`);
-            await runTransaction(winnerRef, (currentBalance) => {
-                return (currentBalance || 0) + parseFloat(prize);
-            });
-            await update(ref(db, `matches/${matchId}`), {
-                status: 'completed',
-                winnerId: winnerId,
-                paid: true,
-                completedTime: Date.now()
-            });
-        }
-
-        // --- Updated Join Match with Pending Check ---
         window.joinMatch = async (id, fee) => {
             const isPending = await hasPendingMatch();
-            if (isPending) {
-                alert("तपाईंको एउटा म्याचको नतिजा (Screenshot) बुझाउन बाँकी छ! पहिले त्यो पूरा गर्नुहोस्।");
-                showTab('waiting');
-                return;
-            }
-
+            if (isPending) { alert("पहिले अघिल्लो म्याचको Screenshot बुझाउनुहोस्!"); showTab('waiting'); return; }
             if (userBalance < fee) return alert("ब्यालेन्स पुगेन!");
-            if (confirm(`रू ${fee} तिरेर म्याच ज्वाइन गर्ने?`)) {
+            if (confirm(`रू ${fee} तिरेर म्याच जोइन गर्ने?`)) {
                 update(ref(db), {
                     [`matches/${id}/status`]: 'waiting',
                     [`matches/${id}/joinerId`]: userUid,
@@ -292,38 +247,78 @@
             }
         };
 
-        // Note: म्याच क्रिएट गर्ने पेज (dashboard.html) मा पनि 
-        // गेम जोइन गर्दा जस्तै 'hasPendingMatch()' चेक गर्नुहोला।
+        async function hasPendingMatch() {
+            const snap = await get(ref(db, 'matches'));
+            const data = snap.val(); if (!data) return false;
+            for (let k in data) {
+                const m = data[k];
+                if (m.status === 'waiting' && (m.creatorId === userUid || m.joinerId === userUid)) {
+                    if (!(m.creatorId === userUid ? m.creator_claim : m.joiner_claim)) return true;
+                }
+            }
+            return false;
+        }
+
+        window.openResultModal = (matchId, claim) => {
+            document.getElementById('uploadModal').style.display = 'flex';
+            document.getElementById('modalTitle').innerText = (claim === 'win') ? "Upload Winning Screenshot" : "Upload Loss Screenshot";
+            document.getElementById('confirmProofBtn').onclick = async () => {
+                const file = document.getElementById('proofFile').files[0];
+                if (!file) return alert("Screenshot छान्नुहोस्!");
+                const btn = document.getElementById('confirmProofBtn'); btn.innerText = "Processing..."; btn.disabled = true;
+                try {
+                    const formData = new FormData(); formData.append("image", file);
+                    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
+                    const resData = await res.json();
+                    if (resData.success) {
+                        const matchRef = ref(db, `matches/${matchId}`);
+                        const matchSnap = await get(matchRef);
+                        const m = matchSnap.val();
+                        let up = {};
+                        if (m.creatorId === userUid) { up.creator_claim = claim; up.creatorProof = resData.data.url; }
+                        else { up.joiner_claim = claim; up.joinerProof = resData.data.url; }
+                        await update(matchRef, up);
+                        checkAutoPayment(matchId);
+                        alert("सबमिट भयो!"); closeModal(); showTab('result');
+                    }
+                } catch (e) { alert("Error!"); }
+                finally { btn.innerText = "Submit & Continue"; btn.disabled = false; }
+            };
+        };
+
+        async function checkAutoPayment(id) {
+            const snap = await get(ref(db, `matches/${id}`)); const m = snap.val();
+            if (m.creator_claim && m.joiner_claim && m.status === 'waiting') {
+                if (m.creator_claim === 'win' && m.joiner_claim === 'loss') finalize(id, m.creatorId, m.prize);
+                else if (m.creator_claim === 'loss' && m.joiner_claim === 'win') finalize(id, m.joinerId, m.prize);
+                else update(ref(db, `matches/${id}`), { status: 'dispute' });
+            }
+        }
+
+        async function finalize(id, winId, prize) {
+            await runTransaction(ref(db, `users/${winId}/balance`), (c) => (c || 0) + parseFloat(prize));
+            await update(ref(db, `matches/${id}`), { status: 'completed', winnerId: winId, paid: true });
+        }
 
         window.openChat = (matchId) => {
-            activeChatId = matchId;
-            document.getElementById('chatModal').style.display = 'flex';
-            const msgContainer = document.getElementById('chatMessages');
-            onValue(ref(db, `matches/${matchId}/messages`), (snapshot) => {
-                msgContainer.innerHTML = "";
-                const data = snapshot.val();
-                if(data) {
-                    Object.values(data).forEach(m => {
-                        msgContainer.innerHTML += `<div class="msg ${m.senderId === userUid ? 'sent' : 'received'}">${m.text}</div>`;
-                    });
-                    msgContainer.scrollTop = msgContainer.scrollHeight;
-                }
+            activeChatId = matchId; document.getElementById('chatModal').style.display = 'flex';
+            onValue(ref(db, `matches/${matchId}/messages`), (snap) => {
+                const box = document.getElementById('chatMessages'); box.innerHTML = "";
+                if(snap.val()) Object.values(snap.val()).forEach(m => {
+                    box.innerHTML += `<div class="msg ${m.senderId === userUid ? 'sent' : 'received'}">${m.text}</div>`;
+                });
+                box.scrollTop = box.scrollHeight;
             });
         };
 
-        window.closeChat = () => {
-            if(activeChatId) off(ref(db, `matches/${activeChatId}/messages`));
-            document.getElementById('chatModal').style.display = 'none';
-        };
-
+        window.closeChat = () => { document.getElementById('chatModal').style.display = 'none'; };
         document.getElementById('sendMsgBtn').onclick = () => {
-            const input = document.getElementById('chatInput');
-            if(!input.value.trim() || !activeChatId) return;
-            push(ref(db, `matches/${activeChatId}/messages`), { senderId: userUid, text: input.value, time: Date.now() });
+            const input = document.getElementById('chatInput'); if(!input.value.trim()) return;
+            push(ref(db, `matches/${activeChatId}/messages`), { senderId: userUid, text: input.value });
             input.value = "";
         };
 
-        window.copyCode = (code) => { navigator.clipboard.writeText(code).then(() => alert("Code कपी भयो!")); };
+        window.copyCode = (code) => { navigator.clipboard.writeText(code).then(() => alert("Code Copied!")); };
 
     </script>
 </body>
