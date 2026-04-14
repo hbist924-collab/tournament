@@ -108,11 +108,9 @@
         let userUid = "";
         let activeChatId = "";
 
-        // --- Notification & Sound System ---
         const joinSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         let audioPermission = false;
 
-        // Enable Audio on first click
         window.enableAudio = () => {
             if (!audioPermission) {
                 joinSound.play().then(() => {
@@ -123,7 +121,6 @@
             }
         };
 
-        // Ask for notification permission once
         function askPermission() {
             if ("Notification" in window && Notification.permission === "default") {
                 Notification.requestPermission();
@@ -162,16 +159,22 @@
 
         function renderMatches() {
             const container = document.getElementById('matchContainer');
-            onValue(ref(db, 'matches'), (snapshot) => {
+            // 'matches' फोल्डर र बाहिर छरिएका डाटा दुवै हेर्न सिधै Root तान्ने (Temporary Fix)
+            onValue(ref(db), (snapshot) => {
                 container.innerHTML = "";
-                const data = snapshot.val();
-                if (!data) return container.innerHTML = `<p style="text-align:center; color:#888; margin-top:50px;">म्याच फेला परेन।</p>`;
+                const allData = snapshot.val();
+                if (!allData) return;
 
+                // यदि म्याचहरू 'matches' भित्र छन् भने त्यहाँबाट लिने, नत्र Root बाट लिने
+                const matchesData = allData.matches || allData;
+                
                 let hasMatches = false;
-                Object.keys(data).forEach(key => {
-                    const match = data[key];
+                Object.keys(matchesData).forEach(key => {
+                    const match = matchesData[key];
+                    
+                    // म्याच नै हो भनेर निश्चित गर्न केही फिल्डहरू चेक गर्ने
+                    if(!match.creatorId || !match.status) return;
 
-                    // --- JOIN ALERT LOGIC ---
                     if (match.creatorId === userUid && match.status === 'waiting' && !match.notified) {
                         triggerAlert();
                         update(ref(db, `matches/${key}`), { notified: true });
@@ -229,7 +232,9 @@
             if (confirm("के तपाईं यो म्याच क्यान्सिल गर्न चाहनुहुन्छ?")) {
                 const userRef = ref(db, `users/${userUid}/balance`);
                 await runTransaction(userRef, (current) => (current || 0) + parseFloat(entryFee));
+                // दुवै ठाउँ (matches फोल्डर र Root) बाट हटाउने प्रयास गर्ने
                 await remove(ref(db, `matches/${matchId}`));
+                await remove(ref(db, matchId));
                 alert("म्याच क्यान्सिल भयो।");
             }
         };
@@ -239,6 +244,7 @@
             if (isPending) { alert("पहिले अघिल्लो म्याचको Screenshot बुझाउनुहोस्!"); showTab('waiting'); return; }
             if (userBalance < fee) return alert("ब्यालेन्स पुगेन!");
             if (confirm(`रू ${fee} तिरेर म्याच जोइन गर्ने?`)) {
+                // 'matches' फोल्डर भित्र अपडेट गर्ने
                 update(ref(db), {
                     [`matches/${id}/status`]: 'waiting',
                     [`matches/${id}/joinerId`]: userUid,
@@ -275,7 +281,7 @@
                         const matchSnap = await get(matchRef);
                         const m = matchSnap.val();
                         let up = {};
-                        if (m.creatorId === userUid) { up.creator_claim = claim; up.creatorProof = resData.data.url; }
+                        if (m && m.creatorId === userUid) { up.creator_claim = claim; up.creatorProof = resData.data.url; }
                         else { up.joiner_claim = claim; up.joinerProof = resData.data.url; }
                         await update(matchRef, up);
                         checkAutoPayment(matchId);
@@ -288,7 +294,7 @@
 
         async function checkAutoPayment(id) {
             const snap = await get(ref(db, `matches/${id}`)); const m = snap.val();
-            if (m.creator_claim && m.joiner_claim && m.status === 'waiting') {
+            if (m && m.creator_claim && m.joiner_claim && m.status === 'waiting') {
                 if (m.creator_claim === 'win' && m.joiner_claim === 'loss') finalize(id, m.creatorId, m.prize);
                 else if (m.creator_claim === 'loss' && m.joiner_claim === 'win') finalize(id, m.joinerId, m.prize);
                 else update(ref(db, `matches/${id}`), { status: 'dispute' });
