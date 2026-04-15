@@ -9,7 +9,6 @@
         :root { --primary: #2c3e50; --gold: #f1c40f; --danger: #e74c3c; --success: #27ae60; }
         body { font-family: sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 70px; overflow-x: hidden; }
         
-        /* Loading Overlay */
         #loadingOverlay {
             position: fixed; inset: 0; background: white; z-index: 9999;
             display: flex; justify-content: center; align-items: center; font-weight: bold;
@@ -23,15 +22,19 @@
         .game-card img { width: 100%; height: 100px; object-fit: cover; }
         .game-card h3 { margin: 8px 0; font-size: 0.9rem; }
         .play-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 5px; margin-bottom: 10px; cursor: pointer; width: 80%; font-weight: bold; }
+        
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 85%; padding: 20px; border-radius: 15px; text-align: center; position: relative; }
         .support-links a { display: block; padding: 12px; margin: 10px 0; text-decoration: none; color: white; border-radius: 8px; font-weight: bold; }
+        
         .wheel-outer { position: relative; width: 220px; height: 220px; margin: 20px auto; }
-        .wheel-container { width: 100%; height: 100%; border: 8px solid #333; border-radius: 50%; position: relative; overflow: hidden; background: #fff; transform: rotate(0deg); }
+        .wheel-container { width: 100%; height: 100%; border: 8px solid #333; border-radius: 50%; position: relative; overflow: hidden; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); }
         .wheel-img { width: 100%; height: 100%; position: absolute; border-radius: 50%; background: conic-gradient(#e74c3c 0deg 60deg, #f1c40f 60deg 120deg, #27ae60 120deg 180deg, #2980b9 180deg 240deg, #8e44ad 240deg 300deg, #e67e22 300deg 360deg); }
-        .number { position: absolute; width: 100%; height: 100%; text-align: center; color: white; font-weight: bold; font-size: 1.2rem; padding-top: 10px; transform-origin: 50% 50%; }
-        .n1 { transform: rotate(30deg); } .n2 { transform: rotate(90deg); } .n3 { transform: rotate(150deg); } .n4 { transform: rotate(210deg); } .n5 { transform: rotate(270deg); } .n6 { transform: rotate(330deg); }
-        .needle { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #333; z-index: 2050; }
+        .number { position: absolute; width: 100%; height: 100%; text-align: center; color: white; font-weight: bold; font-size: 1.1rem; padding-top: 15px; transform-origin: 50% 50%; z-index: 5; }
+        .n1 { transform: rotate(30deg); } .n2 { transform: rotate(90deg); } .n3 { transform: rotate(150deg); } 
+        .n4 { transform: rotate(210deg); } .n5 { transform: rotate(270deg); } .n6 { transform: rotate(330deg); }
+        .needle { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #333; z-index: 2050; }
+
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
         .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
@@ -58,7 +61,7 @@
         <div class="game-card"><img src="https://i.ibb.co/chgx7WP7/download.jpg"><h3>PUBG</h3><button class="play-btn" onclick="openMatchModal('PUBG')">Play Now</button></div>
         <div class="game-card"><img src="https://i.ibb.co/HT41RmqB/images-3.jpg"><h3>Free Fire</h3><button class="play-btn" onclick="openMatchModal('Free Fire')">Play Now</button></div>
         <div class="game-card"><img src="https://i.ibb.co/YBnVSZV1/download-1.jpg"><h3>Carrom</h3><button class="play-btn" onclick="openMatchModal('Carrom')">Play Now</button></div>
-        <div class="game-card"><img src="https://i.ibb.co/397kdSqt/1775469473110.png"><h3>Spin</h3><button class="play-btn" onclick="openSpinModal('normal')">Spin (रू 5)</button></div>
+        <div class="game-card"><img src="https://i.ibb.co/397kdSqt/1775469473110.png"><h3>Normal Spin</h3><button class="play-btn" onclick="openSpinModal('normal')">Spin (रू 5)</button></div>
         <div class="game-card"><img src="https://i.ibb.co/cchmBptQ/1775469646433.png"><h3>Big Spin</h3><button class="play-btn" onclick="openSpinModal('big')">Big Spin (रू 10)</button></div>
     </main>
 
@@ -91,8 +94,12 @@
                 <div class="needle"></div>
                 <div class="wheel-container" id="wheelWrapper">
                     <div class="wheel-img"></div>
-                    <div class="number n1">1</div><div class="number n2">2</div><div class="number n3">5</div>
-                    <div class="number n4">0</div><div class="number n5">10</div><div class="number n6">20</div>
+                    <div id="slot1" class="number n1">?</div>
+                    <div id="slot2" class="number n2">?</div>
+                    <div id="slot3" class="number n3">?</div>
+                    <div id="slot4" class="number n4">?</div>
+                    <div id="slot5" class="number n5">?</div>
+                    <div id="slot6" class="number n6">?</div>
                 </div>
             </div>
             <div id="spinResultText" style="margin: 15px; font-size: 1.3rem; font-weight: bold; color: var(--success); height: 30px;"></div>
@@ -111,9 +118,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, onValue, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, update, push, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // अपडेटेड नयाँ API Key
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
             authDomain: "ludo-king-b051a.firebaseapp.com",
@@ -129,13 +135,12 @@
 
         let currentBalance = 0;
         let spinning = false;
-        let totalRotation = 0;
         let selectedGame = "";
 
         window.toggleModal = (id) => {
             if(spinning) return;
             const m = document.getElementById(id);
-            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+            if(m) m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
         }
 
         window.openMatchModal = (game) => {
@@ -146,94 +151,125 @@
 
         window.openSpinModal = (type) => {
             const fee = (type === 'normal') ? 5 : 10;
+            const prizes = (type === 'normal') ? [0, 2, 5, 7, 10, 15] : [0, 5, 10, 15, 20, 50];
+            
             document.getElementById('spinDisplayTitle').innerText = (type === 'normal') ? "Normal Spin (रू 5)" : "Big Spin (रू 10)";
             document.getElementById('spinResultText').innerText = "";
-            document.getElementById('spinStartBtn').onclick = () => startSpinProcess(type, fee);
+            
+            prizes.forEach((val, index) => {
+                document.getElementById(`slot${index+1}`).innerText = val;
+            });
+
+            document.getElementById('spinStartBtn').onclick = () => startSpinProcess(type, fee, prizes);
             toggleModal('spinModal');
         }
 
         onAuthStateChanged(auth, (user) => {
-            const loader = document.getElementById('loadingOverlay');
             if (user) {
-                loader.style.display = 'none'; // लगइन भएपछि लोडर हटाउने
-                const userRef = ref(db, 'users/' + user.uid);
-                onValue(userRef, (snapshot) => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                onValue(ref(db, 'users/' + user.uid), (snapshot) => {
                     const data = snapshot.val();
                     if (data) {
                         currentBalance = data.balance || 0;
                         document.getElementById('userBalance').innerText = currentBalance.toFixed(2);
                     }
                 });
-
-                document.getElementById('createMatchBtn').onclick = () => {
-                    const amt = parseFloat(document.getElementById('entryAmount').value);
-                    const code = document.getElementById('roomCode').value;
-                    if (amt < 10 || isNaN(amt)) return alert("Min रू 10!");
-                    if (!code) return alert("Room Code required!");
-                    if (currentBalance < amt) return alert("Insufficient balance!");
-
-                    const newMatchKey = push(ref(db, 'matches')).key;
-                    const matchData = {
-                        game: selectedGame,
-                        entry: amt,
-                        prize: parseFloat((amt * 1.85).toFixed(2)),
-                        roomCode: code,
-                        creatorId: user.uid,
-                        status: 'open',
-                        time: Date.now()
-                    };
-
-                    const updates = {};
-                    updates['/matches/' + newMatchKey] = matchData;
-                    updates['/users/' + user.uid + '/balance'] = currentBalance - amt;
-
-                    update(ref(db), updates).then(() => {
-                        alert("Match Created Successfully!");
-                        document.getElementById('entryAmount').value = "";
-                        document.getElementById('roomCode').value = "";
-                        toggleModal('matchModal');
-                    }).catch(err => alert("Error: " + err.message));
-                };
             } else {
-                window.location.href = "index.html"; // लगइन नभएमा होमपेजमा पठाउने
+                window.location.href = "index.html";
             }
         });
 
-        async function startSpinProcess(type, fee) {
+        async function startSpinProcess(type, fee, prizes) {
             if(spinning) return;
-            if(currentBalance < fee) return alert("यो खेल्न ब्यालेन्स पुगेन!");
+            if(currentBalance < fee) return alert("पर्याप्त ब्यालेन्स छैन!");
             
             spinning = true;
             const user = auth.currentUser;
             const wheel = document.getElementById('wheelWrapper');
             const btn = document.getElementById('spinStartBtn');
             const closeBtn = document.getElementById('spinCloseBtn');
-            
-            await update(ref(db, 'users/' + user.uid), { balance: currentBalance - fee });
+            const userRef = ref(db, 'users/' + user.uid);
+
+            // ब्यालेन्स काट्ने
+            await update(userRef, { balance: currentBalance - fee });
 
             btn.style.visibility = "hidden";
             closeBtn.style.visibility = "hidden";
             document.getElementById('spinResultText').innerText = "घुम्दैछ...";
 
-            const addedRotation = Math.floor(Math.random() * 360) + 2160; 
-            totalRotation += addedRotation; 
+            // स्पिन काउन्ट चेक गर्ने
+            const userSnap = await get(userRef);
+            const spinCount = userSnap.val().spinCount || 0;
+
+            let stopAt;
+            if (spinCount === 0) {
+                // पहिलो पटक: इन्ट्री फी भन्दा ठूलो मात्रै
+                let winners = [];
+                prizes.forEach((p, i) => { if(p > fee) winners.push(i); });
+                stopAt = winners[Math.floor(Math.random() * winners.length)];
+            } else {
+                // त्यसपछि: इन्ट्री फी भन्दा कम वा बराबर मात्रै
+                let losers = [];
+                prizes.forEach((p, i) => { if(p <= fee) losers.push(i); });
+                stopAt = losers[Math.floor(Math.random() * losers.length)];
+            }
+
+            const angles = [30, 90, 150, 210, 270, 330];
+            const targetAngle = angles[stopAt];
+            const totalRot = (360 * 5) - targetAngle; 
+            
             wheel.style.transition = "transform 4s cubic-bezier(0.15, 0, 0.15, 1)";
-            wheel.style.transform = `rotate(${totalRotation}deg)`;
+            wheel.style.transform = `rotate(${totalRot}deg)`;
 
-            setTimeout(() => {
-                let win = 0;
-                const prizes = [1, 2, 5, 0, 10, 20];
-                win = prizes[Math.floor(Math.random() * prizes.length)];
+            setTimeout(async () => {
+                const winAmount = prizes[stopAt];
+                const latestSnap = await get(userRef);
+                const latestBal = latestSnap.val().balance || 0;
 
-                update(ref(db, 'users/' + user.uid), { balance: (currentBalance - fee) + win });
-                document.getElementById('spinResultText').innerText = "जित: रू " + win;
+                await update(userRef, { 
+                    balance: latestBal + winAmount,
+                    spinCount: spinCount + 1 
+                });
+
+                document.getElementById('spinResultText').innerText = "जित: रू " + winAmount;
                 
-                spinning = false;
-                btn.style.visibility = "visible";
-                closeBtn.style.visibility = "visible";
-                btn.innerText = "फेरि खेल्नुहोस्";
+                setTimeout(() => {
+                    spinning = false;
+                    btn.style.visibility = "visible";
+                    closeBtn.style.visibility = "visible";
+                    btn.innerText = "फेरि खेल्नुहोस्";
+                    wheel.style.transition = "none";
+                    wheel.style.transform = `rotate(${-targetAngle}deg)`;
+                }, 1000);
             }, 4000);
         }
+
+        document.getElementById('createMatchBtn').onclick = () => {
+            const amt = parseFloat(document.getElementById('entryAmount').value);
+            const code = document.getElementById('roomCode').value;
+            const user = auth.currentUser;
+
+            if (amt < 10 || isNaN(amt)) return alert("न्यूनतम रू १०!");
+            if (!code) return alert("Room Code हाल्नुहोस्!");
+            if (currentBalance < amt) return alert("ब्यालेन्स पुगेन!");
+
+            const newMatchKey = push(ref(db, 'matches')).key;
+            const matchData = {
+                game: selectedGame, entry: amt,
+                prize: parseFloat((amt * 1.85).toFixed(2)),
+                roomCode: code, creatorId: user.uid,
+                status: 'open', time: Date.now()
+            };
+
+            const updates = {};
+            updates['/matches/' + newMatchKey] = matchData;
+            updates['/users/' + user.uid + '/balance'] = currentBalance - amt;
+
+            update(ref(db), updates).then(() => {
+                alert("Match Created!");
+                toggleModal('matchModal');
+            });
+        };
     </script>
 </body>
 </html>
