@@ -86,7 +86,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>User ID</th>
+                            <th>User UID</th>
                             <th>Method</th>
                             <th>Wallet ID</th>
                             <th>Amount</th>
@@ -104,7 +104,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>User ID</th>
+                            <th>User UID</th>
                             <th>Amount</th>
                             <th>Proof</th>
                             <th>Action</th>
@@ -179,7 +179,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Sidebar Toggle
+        // UI Handlers
         window.toggleSidebar = () => {
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('active');
@@ -189,31 +189,9 @@
             document.querySelectorAll('.main-content > div').forEach(div => div.classList.add('hidden'));
             document.getElementById('section-' + id).classList.remove('hidden');
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-            // Sidebar Close on Mobile
             if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.remove('open');
                 document.getElementById('overlay').classList.remove('active');
-            }
-        };
-
-        // --- SEARCH FUNCTION (NEW) ---
-        window.searchUser = () => {
-            let input = document.getElementById("userSearchInput").value.toLowerCase();
-            let table = document.getElementById("userTable");
-            let tr = table.getElementsByTagName("tr");
-
-            for (let i = 1; i < tr.length; i++) {
-                let uidTd = tr[i].getElementsByTagName("td")[0];
-                let nameTd = tr[i].getElementsByTagName("td")[1];
-                if (uidTd || nameTd) {
-                    let uidValue = uidTd.textContent || uidTd.innerText;
-                    let nameValue = nameTd.textContent || nameTd.innerText;
-                    if (uidValue.toLowerCase().indexOf(input) > -1 || nameValue.toLowerCase().indexOf(input) > -1) {
-                        tr[i].style.display = "";
-                    } else {
-                        tr[i].style.display = "none";
-                    }
-                }
             }
         };
 
@@ -235,7 +213,7 @@
                     uCount++;
                     const u = data[uid];
                     list.innerHTML += `<tr>
-                        <td>${uid}</td>
+                        <td>${u.numericID || uid}</td>
                         <td>${u.name || 'User'}</td>
                         <td>रू ${u.balance || 0}</td>
                         <td>
@@ -248,7 +226,7 @@
             document.getElementById('stat-totalUsers').innerText = uCount;
         });
 
-        // 2. Withdrawal Requests
+        // 2. Withdrawal Requests Update (FIXED)
         onValue(ref(db, 'admin/withdraws'), (snapshot) => {
             const data = snapshot.val();
             const list = document.getElementById('withdrawListBody');
@@ -278,18 +256,21 @@
         window.processWithdraw = (wid, uid, status, amount = 0) => {
             if(confirm(`${status} गर्ने निश्चित हुनुहुन्छ?`)) {
                 const updates = {};
+                // Admin र Root दुबै ठाउँमा स्टेटस अपडेट गर्ने (तपाईँको डाटाबेसको स्ट्रक्चर अनुसार)
                 updates[`admin/withdraws/${wid}/status`] = status;
+                updates[`${wid}/status`] = status; 
+
                 if(status === 'rejected') {
                     get(ref(db, `users/${uid}/balance`)).then(snap => {
                         const bal = snap.val() || 0;
                         update(ref(db, `users/${uid}`), { balance: bal + parseFloat(amount) });
                     });
                 }
-                update(ref(db), updates).then(() => alert("विथड्र अपडेट भयो!"));
+                update(ref(db), updates).then(() => alert("अपडेट सफल भयो!"));
             }
         };
 
-        // 3. Deposits
+        // 3. Deposits Update (FIXED)
         onValue(ref(db, 'admin/deposits'), (snapshot) => {
             const data = snapshot.val();
             const list = document.getElementById('depositListBody');
@@ -316,16 +297,19 @@
         });
 
         window.approveDeposit = (did, uid, amt) => {
-            get(ref(db, `users/${uid}/balance`)).then(snap => {
-                const bal = snap.val() || 0;
-                const updates = {};
-                updates[`users/${uid}/balance`] = bal + parseFloat(amt);
-                updates[`admin/deposits/${did}/status`] = 'approved';
-                update(ref(db), updates).then(() => alert("डिपोजिट एप्रुभ भयो!"));
-            });
+            if(confirm("एप्रुभ गर्ने हो?")) {
+                get(ref(db, `users/${uid}/balance`)).then(snap => {
+                    const bal = snap.val() || 0;
+                    const updates = {};
+                    updates[`users/${uid}/balance`] = bal + parseFloat(amt);
+                    updates[`admin/deposits/${did}/status`] = 'approved';
+                    updates[`${did}/status`] = 'approved'; 
+                    update(ref(db), updates).then(() => alert("डिपोजिट एप्रुभ भयो!"));
+                });
+            }
         };
 
-        // 4. Match Results
+        // 4. Match Results (FIXED)
         onValue(ref(db, 'matches'), (snapshot) => {
             const data = snapshot.val();
             const list = document.getElementById('matchListBody');
@@ -358,17 +342,29 @@
 
         window.approveWin = (mid, prize) => {
             const winId = document.getElementById('win_'+mid).value;
-            get(ref(db, `users/${winId}/balance`)).then(snap => {
-                const bal = snap.val() || 0;
-                const updates = {};
-                updates[`users/${winId}/balance`] = bal + parseFloat(prize);
-                updates[`matches/${mid}/status`] = 'completed';
-                updates[`matches/${mid}/winnerId`] = winId;
-                update(ref(db), updates).then(() => alert("Winner Paid!"));
-            });
+            if(confirm("विजेतालाई पैसा पठाउने हो?")) {
+                get(ref(db, `users/${winId}/balance`)).then(snap => {
+                    const bal = snap.val() || 0;
+                    const updates = {};
+                    updates[`users/${winId}/balance`] = bal + parseFloat(prize);
+                    updates[`matches/${mid}/status`] = 'completed';
+                    updates[`matches/${mid}/winnerId`] = winId;
+                    update(ref(db), updates).then(() => alert("विजेतालाई पेमेन्ट गरियो!"));
+                });
+            }
         };
 
-        // Utility
+        // Global Reject Logic
+        window.rejectReq = (dbPath, id, uid) => { 
+            if(confirm("अस्विकार गर्ने?")) {
+                const updates = {};
+                updates[`${dbPath}/${id}/status`] = 'rejected';
+                updates[`${id}/status`] = 'rejected'; 
+                update(ref(db), updates).then(() => alert("Rejected!"));
+            }
+        };
+
+        // Extra Utilities
         window.editBalance = (uid, bal) => {
             const n = prompt("नयाँ ब्यालेन्स हाल्नुहोस्:", bal);
             if(n !== null) update(ref(db, `users/${uid}`), { balance: parseFloat(n) });
@@ -379,11 +375,12 @@
             set(ref(db, 'settings/notice'), { text: document.getElementById('noticeText').value, date: new Date().toLocaleDateString() });
             alert("Settings Saved!");
         };
-        window.rejectReq = (path, id, uid) => { 
-            if(confirm("अस्विकार गर्ने?")) {
-                const updates = {};
-                updates[`${path}/${id}/status`] = 'rejected';
-                update(ref(db), updates); 
+        window.searchUser = () => {
+            let input = document.getElementById("userSearchInput").value.toLowerCase();
+            let tr = document.getElementById("userTable").getElementsByTagName("tr");
+            for (let i = 1; i < tr.length; i++) {
+                let txt = tr[i].innerText.toLowerCase();
+                tr[i].style.display = txt.includes(input) ? "" : "none";
             }
         };
     </script>
