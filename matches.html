@@ -245,6 +245,33 @@
 
         window.joinMatch = async (id, fee) => {
             if (userBalance < fee) return showToast("ब्यालेन्स पर्याप्त छैन!");
+            
+            // --- नयाँ फिचर: पेंडिंग म्याच चेक ---
+            const matchesRef = ref(db, 'matches');
+            const snapshot = await get(matchesRef);
+            const matches = snapshot.val();
+            let hasPending = false;
+
+            if (matches) {
+                Object.values(matches).forEach(m => {
+                    // यदि स्टेटस waiting छ र यो प्रयोगकर्ता creator वा joiner हो
+                    if (m.status === 'waiting' && (m.creatorId === userUid || m.joinerId === userUid)) {
+                        // यदि उसले अझै claim (screenshot upload) गरेको छैन भने
+                        const myClaim = (m.creatorId === userUid) ? m.creator_claim : m.joiner_claim;
+                        if (!myClaim) {
+                            hasPending = true;
+                        }
+                    }
+                });
+            }
+
+            if (hasPending) {
+                showToast("कृपया अघिल्लो गेमको Screenshot हाल्नुहोस्!");
+                showTab('waiting');
+                return;
+            }
+            // --------------------------------
+
             customConfirm(`रू ${fee} तिरेर म्याच ज्वाइन गर्ने?`, async () => {
                 try {
                     await update(ref(db), {
