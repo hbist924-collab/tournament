@@ -9,11 +9,13 @@
         :root { --primary: #2c3e50; --gold: #f1c40f; --danger: #e74c3c; --success: #27ae60; }
         body { font-family: sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 70px; overflow-x: hidden; }
         
-        #loadingOverlay {
-            position: fixed; inset: 0; background: white; z-index: 9999;
-            display: flex; justify-content: center; align-items: center; font-weight: bold;
-        }
+        /* Custom Toast System */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 5000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 100px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 100px; opacity: 1;} to {bottom: 0; opacity: 0;} }
 
+        #loadingOverlay { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center; font-weight: bold; }
         .header { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .balance-box { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--gold); }
         .customer-btn { font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; gap: 5px; }
@@ -21,12 +23,14 @@
         .game-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
         .game-card img { width: 100%; height: 100px; object-fit: cover; }
         .game-card h3 { margin: 8px 0; font-size: 0.9rem; }
-        .play-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 5px; margin-bottom: 10px; cursor: pointer; width: 80%; font-weight: bold; }
+        .play-btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; width: 85%; font-weight: bold; transition: 0.3s; }
+        .play-btn:active { transform: scale(0.95); }
         
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 85%; padding: 20px; border-radius: 15px; text-align: center; position: relative; }
+        .modal-content { background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 20px; text-align: center; position: relative; }
         .support-links a { display: block; padding: 12px; margin: 10px 0; text-decoration: none; color: white; border-radius: 8px; font-weight: bold; }
         
+        /* Spin Wheel Styles */
         .wheel-outer { position: relative; width: 220px; height: 220px; margin: 20px auto; }
         .wheel-container { width: 100%; height: 100%; border: 8px solid #333; border-radius: 50%; position: relative; overflow: hidden; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); }
         .wheel-img { width: 100%; height: 100%; position: absolute; border-radius: 50%; background: conic-gradient(#e74c3c 0deg 60deg, #f1c40f 60deg 120deg, #27ae60 120deg 180deg, #2980b9 180deg 240deg, #8e44ad 240deg 300deg, #e67e22 300deg 360deg); }
@@ -38,13 +42,15 @@
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
         .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
-        input { width: 90%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
+    <div id="toast">सूचना...</div>
+
     <div id="loadingOverlay">
-        <div><i class="fas fa-spinner fa-spin"></i> Loading Dashboard...</div>
+        <div><i class="fas fa-spinner fa-spin"></i> Loading...</div>
     </div>
 
     <header class="header">
@@ -71,7 +77,7 @@
             <div class="support-links">
                 <a href="https://wa.me/9744706803" target="_blank" style="background: #25D366;"><i class="fab fa-whatsapp"></i> WhatsApp</a>
                 <a href="https://t.me/watchads11" target="_blank" style="background: #0088cc;"><i class="fab fa-telegram"></i> Telegram</a>
-                <button onclick="toggleModal('supportModal')" class="play-btn" style="background:#555; width: 100%;">Close</button>
+                <button onclick="toggleModal('supportModal')" class="play-btn" style="background:#555; width: 100%; margin-top: 10px;">Close</button>
             </div>
         </div>
     </div>
@@ -81,7 +87,7 @@
             <h3 id="matchTitle">Create Match</h3>
             <input type="number" id="entryAmount" placeholder="Entry Amount (Min 10)">
             <input type="text" id="roomCode" placeholder="Room Code">
-            <p style="font-size: 0.75rem; color: #e74c3c; font-weight: bold;">Admin Commission: 15%</p>
+            <p style="font-size: 0.75rem; color: #e74c3c; font-weight: bold; margin-bottom: 15px;">Admin Commission: 15%</p>
             <button id="createMatchBtn" class="play-btn" style="background: var(--success); width: 100%;">Create Match</button>
             <button onclick="toggleModal('matchModal')" class="play-btn" style="background:#555; width: 100%; margin-top: 8px;">Cancel</button>
         </div>
@@ -137,6 +143,13 @@
         let spinning = false;
         let selectedGame = "";
 
+        // UI Toast Function
+        window.showToast = (msg) => {
+            const t = document.getElementById("toast");
+            t.innerText = msg; t.className = "show";
+            setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        };
+
         window.toggleModal = (id) => {
             if(spinning) return;
             const m = document.getElementById(id);
@@ -145,13 +158,13 @@
 
         window.openMatchModal = (game) => {
             selectedGame = game;
-            document.getElementById('matchTitle').innerText = game + " Match";
+            document.getElementById('matchTitle').innerText = game + " Create Match";
             toggleModal('matchModal');
         }
 
         window.openSpinModal = (type) => {
-            const fee = (type === 'normal') ? 5 : 10;
             const prizes = (type === 'normal') ? [0, 2, 5, 7, 10, 15] : [0, 5, 10, 15, 20, 50];
+            const fee = (type === 'normal') ? 5 : 10;
             
             document.getElementById('spinDisplayTitle').innerText = (type === 'normal') ? "Normal Spin (रू 5)" : "Big Spin (रू 10)";
             document.getElementById('spinResultText').innerText = "";
@@ -174,14 +187,12 @@
                         document.getElementById('userBalance').innerText = currentBalance.toFixed(2);
                     }
                 });
-            } else {
-                window.location.href = "index.html";
-            }
+            } else { window.location.href = "index.html"; }
         });
 
         async function startSpinProcess(type, fee, prizes) {
             if(spinning) return;
-            if(currentBalance < fee) return alert("पर्याप्त ब्यालेन्स छैन!");
+            if(currentBalance < fee) return showToast("ब्यालेन्स पुगेन!");
             
             spinning = true;
             const user = auth.currentUser;
@@ -190,25 +201,21 @@
             const closeBtn = document.getElementById('spinCloseBtn');
             const userRef = ref(db, 'users/' + user.uid);
 
-            // ब्यालेन्स काट्ने
-            await update(userRef, { balance: currentBalance - fee });
+            await update(userRef, { balance: Number((currentBalance - fee).toFixed(2)) });
 
             btn.style.visibility = "hidden";
             closeBtn.style.visibility = "hidden";
             document.getElementById('spinResultText').innerText = "घुम्दैछ...";
 
-            // स्पिन काउन्ट चेक गर्ने
             const userSnap = await get(userRef);
             const spinCount = userSnap.val().spinCount || 0;
 
             let stopAt;
             if (spinCount === 0) {
-                // पहिलो पटक: इन्ट्री फी भन्दा ठूलो मात्रै
                 let winners = [];
                 prizes.forEach((p, i) => { if(p > fee) winners.push(i); });
                 stopAt = winners[Math.floor(Math.random() * winners.length)];
             } else {
-                // त्यसपछि: इन्ट्री फी भन्दा कम वा बराबर मात्रै
                 let losers = [];
                 prizes.forEach((p, i) => { if(p <= fee) losers.push(i); });
                 stopAt = losers[Math.floor(Math.random() * losers.length)];
@@ -227,7 +234,7 @@
                 const latestBal = latestSnap.val().balance || 0;
 
                 await update(userRef, { 
-                    balance: latestBal + winAmount,
+                    balance: Number((latestBal + winAmount).toFixed(2)),
                     spinCount: spinCount + 1 
                 });
 
@@ -246,12 +253,12 @@
 
         document.getElementById('createMatchBtn').onclick = () => {
             const amt = parseFloat(document.getElementById('entryAmount').value);
-            const code = document.getElementById('roomCode').value;
+            const code = document.getElementById('roomCode').value.trim();
             const user = auth.currentUser;
 
-            if (amt < 10 || isNaN(amt)) return alert("न्यूनतम रू १०!");
-            if (!code) return alert("Room Code हाल्नुहोस्!");
-            if (currentBalance < amt) return alert("ब्यालेन्स पुगेन!");
+            if (amt < 10 || isNaN(amt)) return showToast("न्यूनतम रू १० आवश्यक छ!");
+            if (!code) return showToast("Room Code अनिवार्य छ!");
+            if (currentBalance < amt) return showToast("ब्यालेन्स पर्याप्त छैन!");
 
             const newMatchKey = push(ref(db, 'matches')).key;
             const matchData = {
@@ -263,10 +270,10 @@
 
             const updates = {};
             updates['/matches/' + newMatchKey] = matchData;
-            updates['/users/' + user.uid + '/balance'] = currentBalance - amt;
+            updates['/users/' + user.uid + '/balance'] = Number((currentBalance - amt).toFixed(2));
 
             update(ref(db), updates).then(() => {
-                alert("Match Created!");
+                showToast("Match सफलतापूर्वक सिर्जना भयो!");
                 toggleModal('matchModal');
             });
         };
