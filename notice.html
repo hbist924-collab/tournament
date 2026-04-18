@@ -14,6 +14,12 @@
         .section-title { font-weight: bold; margin: 15px 0 10px 5px; display: flex; align-items: center; gap: 8px; color: var(--primary); }
         .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         
+        /* Custom Toast Style */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 3000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 100px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 100px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
         /* Notice Styles */
         .notice-item { border-left: 4px solid var(--gold); padding: 12px; margin-bottom: 12px; background: #fff9e6; border-radius: 0 8px 8px 0; }
         .notice-date { font-size: 0.75rem; color: #777; display: block; margin-bottom: 4px; }
@@ -26,22 +32,18 @@
         .ludo-g { background: #e67e22; }
         .ff-g { background: #e74c3c; }
         .pubg-g { background: #27ae60; }
-        .group-btn:active { transform: scale(0.96); }
 
         .ads-box { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; text-align: center; }
         .ads-box i { font-size: 2rem; margin-bottom: 10px; color: var(--gold); }
-        .btn-ads { background: var(--gold); color: #000; border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; transition: 0.3s; }
+        .btn-ads { background: var(--gold); color: #000; border: none; padding: 12px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; transition: 0.3s; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
         
         .app-box { display: flex; align-items: center; gap: 15px; border: 1px solid #ddd; }
         .app-icon { width: 50px; height: 50px; border-radius: 10px; }
         .app-info { flex: 1; }
-        .app-info b { font-size: 0.95rem; display: block; }
-        .app-info span { font-size: 0.75rem; color: #666; }
         .btn-dl { background: var(--success); color: white; border: none; padding: 7px 12px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; text-decoration: none; }
         
         .game-rules { background: #fff; border-top: 4px solid var(--danger); }
         .rule-list { padding-left: 20px; margin: 10px 0; font-size: 0.85rem; color: #444; }
-        .rule-list li { margin-bottom: 8px; }
         
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 1000; }
         .nav-item { text-align: center; color: #777; font-size: 0.8rem; text-decoration: none; }
@@ -49,6 +51,8 @@
     </style>
 </head>
 <body>
+
+    <div id="toast">सूचना...</div>
 
     <div class="header">
         <h2>सूचना र अपडेटहरू</h2>
@@ -94,7 +98,7 @@
             <img src="https://i.ibb.co/GvfdCh8y/images.jpg" class="app-icon">
             <div class="app-info">
                 <b>Ludo King Official</b>
-                <span>Size: 52MB | Version: 7.2</span>
+                <span style="font-size: 0.75rem; color: #666; display: block;">Size: 52MB | Version: 7.2</span>
             </div>
             <a href="https://play.google.com/store/apps/details?id=com.ludo.king" target="_blank" class="btn-dl">Download</a>
         </div>
@@ -124,7 +128,6 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // अपडेटेड नयाँ API Key
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
             authDomain: "ludo-king-b051a.firebaseapp.com",
@@ -140,6 +143,14 @@
 
         let userBalance = 0;
 
+        // Custom Toast Function
+        window.showToast = (msg) => {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.className = "show";
+            setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        };
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 const userRef = ref(db, 'users/' + user.uid);
@@ -148,6 +159,7 @@
                     if(snapshot.exists()) userBalance = snapshot.val().balance || 0;
                 });
 
+                // Get Notice from Firebase
                 const noticeRef = ref(db, 'settings/notice');
                 onValue(noticeRef, (snapshot) => {
                     const noticeList = document.getElementById('noticeList');
@@ -168,14 +180,15 @@
                     }
                 });
 
+                // Watch Ad logic
                 document.getElementById('watchAdBtn').onclick = () => {
                     window.open("https://omg10.com/4/10807361", "_blank");
-                    alert("विज्ञापन हेरिसकेपछि तपाईँको ब्यालेन्समा रू ०.२० थपिनेछ।");
+                    showToast("विज्ञापन हेरेपछि रू ०.२० ब्यालेन्स थपिनेछ।");
                     
                     setTimeout(() => {
                         const reward = 0.20;
                         update(userRef, { balance: Number((userBalance + reward).toFixed(2)) }).then(() => {
-                            console.log("Reward Added Successfully");
+                            showToast("ब्यालेन्स सफलतापूर्वक थपियो! (रू ०.२०)");
                         });
                     }, 5000); 
                 };
