@@ -183,12 +183,13 @@
                     if (currentTab === 'open' && match.status === 'open' && match.creatorId !== userUid) isVisible = true;
                     if (currentTab === 'mine' && match.status === 'open' && match.creatorId === userUid) isVisible = true;
                     if (currentTab === 'waiting' && match.status === 'waiting' && (match.creatorId === userUid || match.joinerId === userUid) && !myClaim) isVisible = true;
-                    if (currentTab === 'result' && (match.creatorId === userUid || match.joinerId === userUid) && myClaim) isVisible = true;
+                    if (currentTab === 'result' && (match.creatorId === userUid || match.joinerId === userUid) && (myClaim || match.status === 'completed' || match.status === 'dispute')) isVisible = true;
 
                     if (isVisible) {
                         hasMatches = true;
                         let actionBtn = "";
                         let roomCodeHtml = "";
+                        let cardColor = "var(--blue)";
 
                         if (currentTab === 'open') {
                             actionBtn = `<button class="action-btn join-btn" onclick="joinMatch('${key}', ${match.entry})">JOIN NOW</button>`;
@@ -205,8 +206,15 @@
                         } 
                         else if (currentTab === 'result') {
                             if (match.status === "completed") {
-                                actionBtn = `<div class="status-badge" style="background:#e8f5e9; color:#27ae60; border: 1px solid #27ae60;"><i class="fas fa-check-circle"></i> COMPLETED</div>`;
+                                if (match.winnerId === userUid) {
+                                    cardColor = "var(--success)";
+                                    actionBtn = `<div class="status-badge" style="background:#e8f5e9; color:#27ae60; border: 1px solid #27ae60;"><i class="fas fa-trophy"></i> YOU WON (+ रू ${match.prize})</div>`;
+                                } else {
+                                    cardColor = "var(--danger)";
+                                    actionBtn = `<div class="status-badge" style="background:#ffebee; color:#e74c3c; border: 1px solid #e74c3c;"><i class="fas fa-times-circle"></i> YOU LOST</div>`;
+                                }
                             } else if (match.status === "dispute") {
+                                cardColor = "var(--warning)";
                                 actionBtn = `<div class="status-badge" style="background:#fff3e0; color:#e67e22; border: 1px solid #e67e22;"><i class="fas fa-exclamation-triangle"></i> DISPUTE</div>`;
                             } else {
                                 actionBtn = `<div class="status-badge" style="background:#f0f0f0; color:#888; border: 1px solid #ddd;"><i class="fas fa-hourglass-half"></i> PENDING RESULT</div>`;
@@ -214,7 +222,7 @@
                         }
 
                         container.innerHTML += `
-                            <div class="match-card">
+                            <div class="match-card" style="border-left: 5px solid ${cardColor};">
                                 <div class="match-header"><span class="game-name">${match.game}</span><span class="entry-fee">Entry: रू ${match.entry}</span></div>
                                 <div class="match-body"><b>Prize:</b> रू ${match.prize} ${roomCodeHtml}</div>
                                 <div class="btn-group">${actionBtn}</div>
