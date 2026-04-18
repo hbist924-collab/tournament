@@ -9,25 +9,31 @@
     <style>
         :root { --primary: #2c3e50; --gold: #f1c40f; --success: #27ae60; --light: #ecf0f1; }
         body, html { height: 100%; margin: 0; font-family: sans-serif; background: var(--primary); overflow: hidden; }
+        
+        /* Full Screen Page Loader */
+        #pageLoader { position: fixed; inset: 0; background: var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; }
+        
         .container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); }
-        .auth-box { width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); text-align: center; }
+        .auth-box { width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); text-align: center; display: none; }
         .logo { font-size: 3rem; color: var(--gold); margin-bottom: 10px; }
         h2 { margin-bottom: 25px; color: var(--primary); font-size: 1.5rem; }
         .input-group { position: relative; margin-bottom: 20px; }
         .input-group i { position: absolute; left: 15px; top: 15px; color: #777; }
         .input-group input { width: 100%; padding: 12px 12px 12px 45px; border: 1px solid #ddd; border-radius: 10px; outline: none; box-sizing: border-box; font-size: 1rem; background: #f9f9f9; }
         .btn-auth { width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        .btn-auth:disabled { background: #95a5a6; cursor: not-allowed; }
+        .btn-auth:disabled { background: #95a5a6; }
         .switch-text { margin-top: 20px; font-size: 0.9rem; color: #555; }
         .switch-text b { color: var(--primary); cursor: pointer; text-decoration: underline; }
-        #loginForm { display: none; }
         .bonus-tag { background: var(--success); color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; display: inline-block; margin-bottom: 15px; animation: bounce 2s infinite; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-        
-        #regLoader, #loginLoader { display: none; margin-top: 15px; color: var(--primary); font-weight: bold; font-size: 0.9rem; }
     </style>
 </head>
 <body>
+
+    <div id="pageLoader">
+        <i class="fas fa-gamepad fa-3x fa-spin" style="color: var(--gold);"></i>
+        <p style="margin-top: 15px; letter-spacing: 1px;">पख्नुहोस्, चेक गर्दैछौं...</p>
+    </div>
 
     <div class="container">
         <div class="auth-box" id="registerForm">
@@ -39,7 +45,6 @@
             <div class="input-group"><i class="fas fa-key"></i><input type="password" id="regPass" placeholder="पासवर्ड (न्यूनतम ६ अक्षर)"></div>
             <div class="input-group"><i class="fas fa-user-friends"></i><input type="text" id="regRefer" placeholder="Referral Code (Optional)"></div>
             <button class="btn-auth" id="regBtn">REGISTER</button>
-            <div id="regLoader"><i class="fas fa-spinner fa-spin"></i> Processing...</div>
             <p class="switch-text">पहिले नै खाता छ? <b onclick="toggleForm('login')">यहाँ Login गर्नुहोस्</b></p>
         </div>
 
@@ -49,14 +54,13 @@
             <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="loginEmail" placeholder="इमेल"></div>
             <div class="input-group"><i class="fas fa-key"></i><input type="password" id="loginPass" placeholder="पासवर्ड"></div>
             <button class="btn-auth" id="loginBtn">LOGIN</button>
-            <div id="loginLoader"><i class="fas fa-spinner fa-spin"></i> Checking...</div>
             <p class="switch-text">खाता छैन? <b onclick="toggleForm('register')">यहाँ दर्ता गर्नुहोस्</b></p>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -72,26 +76,33 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // UI Helpers
-        const regLoader = document.getElementById('regLoader');
-        const loginLoader = document.getElementById('loginLoader');
+        // लगइन स्टेटलाई ब्राउजरमा सेभ गर्ने (Local Persistence)
+        setPersistence(auth, browserLocalPersistence);
+
+        const pageLoader = document.getElementById('pageLoader');
+        const regBox = document.getElementById('registerForm');
+        const loginBox = document.getElementById('loginForm');
+
+        // --- मुख्य अटो रिडाइरेक्ट लजिक ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // यदि युजर लगइन छ भने सिधै ड्यासबोर्डमा पठाउने
+                window.location.replace("dashboard.html");
+            } else {
+                // लगइन छैन भने मात्र फर्म देखाउने र लोडर हटाउने
+                pageLoader.style.display = 'none';
+                loginBox.style.display = 'block'; 
+            }
+        });
 
         const toast = (msg, icon = 'info') => {
-            Swal.fire({ text: msg, icon: icon, confirmButtonColor: '#2c3e50' });
+            Swal.fire({ text: msg, icon: icon, confirmButtonColor: '#2c3e50', timer: 3000 });
         };
 
         window.toggleForm = (type) => {
-            document.getElementById('registerForm').style.display = (type === 'login') ? 'none' : 'block';
-            document.getElementById('loginForm').style.display = (type === 'login') ? 'block' : 'none';
+            regBox.style.display = (type === 'login') ? 'none' : 'block';
+            loginBox.style.display = (type === 'login') ? 'block' : 'none';
         };
-
-        // --- AUTH CHECK: लगआउट गर्दा लोडिङमा अड्किनबाट रोक्ने तरिका ---
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // replace() प्रयोग गर्दा ब्याक बटन थिच्दा फेरि लोडिङमा अड्किँदैन
-                window.location.replace("dashboard.html");
-            }
-        });
 
         // Registration Logic
         document.getElementById('regBtn').onclick = async () => {
@@ -100,10 +111,10 @@
             const pass = document.getElementById('regPass').value;
             const refer = document.getElementById('regRefer').value.trim();
 
-            if(!name || !email || !pass) return toast("कृपया सबै विवरण भर्नुहोस्!", "warning");
+            if(!name || !email || !pass) return toast("सबै विवरण भर्नुहोस्!", "warning");
             
-            regLoader.style.display = 'block';
-            document.getElementById('regBtn').disabled = true;
+            const btn = document.getElementById('regBtn');
+            btn.disabled = true; btn.innerText = "दर्ता गर्दै...";
 
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
@@ -119,20 +130,12 @@
                     joinedAt: Date.now()
                 });
 
-                Swal.fire({
-                    title: 'सफल!',
-                    text: 'दर्ता सफल भयो र रू ५ बोनस प्राप्त भयो।',
-                    icon: 'success',
-                    confirmButtonColor: '#27ae60'
-                }).then(() => {
-                    window.location.replace("dashboard.html");
-                });
+                Swal.fire({ title: 'बधाई छ!', text: 'खाता बन्यो र रू ५ बोनस प्राप्त भयो।', icon: 'success' })
+                .then(() => window.location.replace("dashboard.html"));
 
             } catch (error) {
                 toast("त्रुटि: " + error.message, "error");
-            } finally {
-                regLoader.style.display = 'none';
-                document.getElementById('regBtn').disabled = false;
+                btn.disabled = false; btn.innerText = "REGISTER";
             }
         };
 
@@ -141,19 +144,17 @@
             const email = document.getElementById('loginEmail').value.trim();
             const pass = document.getElementById('loginPass').value;
 
-            if(!email || !pass) return toast("Email र Password भर्नुहोस्!", "warning");
+            if(!email || !pass) return toast("इमेल र पासवर्ड भर्नुहोस्!", "warning");
 
-            loginLoader.style.display = 'block';
-            document.getElementById('loginBtn').disabled = true;
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true; btn.innerText = "चेक गर्दै...";
 
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
                 window.location.replace("dashboard.html");
             } catch (error) {
-                toast("लगइन असफल! इमेल वा पासवर्ड मिलेन।", "error");
-            } finally {
-                loginLoader.style.display = 'none';
-                document.getElementById('loginBtn').disabled = false;
+                toast("लगइन मिलेन! कृपया पुन: प्रयास गर्नुहोस्।", "error");
+                btn.disabled = false; btn.innerText = "LOGIN";
             }
         };
     </script>
