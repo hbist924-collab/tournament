@@ -30,11 +30,9 @@
         .menu-list { background: white; margin: 20px 15px; border-radius: 12px; overflow: hidden; }
         .menu-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; color: #333; text-decoration: none; cursor: pointer; }
         
-        /* Modals */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 90%; padding: 20px; border-radius: 15px; text-align: center; max-height: 85vh; overflow-y: auto; position: relative; }
         
-        /* Custom Toast (Replacer for Browser Alerts) */
         #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 3000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 14px; }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
 
@@ -188,7 +186,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, onValue, update, push, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, update, push, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDmrsJq_hxoaSwbl_Y8U8eOZdTVBb0fBIo",
@@ -204,7 +202,6 @@
         const db = getDatabase(app);
         const IMGBB_API_KEY = "7649636e77b828ae7fcc601bfdf43786";
 
-        // Custom Notification Function (No more Browser Alert)
         window.showToast = (msg) => {
             const t = document.getElementById("toast");
             t.innerText = msg;
@@ -221,24 +218,46 @@
             navigator.clipboard.writeText(uid).then(() => showToast("UID Copied!"));
         };
 
-        onAuthStateChanged(auth, (user) => {
+        // ६ अंकको Numeric ID जेनरेट गर्ने फङ्सन
+        function generateNumericUID() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userRef = ref(db, 'users/' + user.uid);
-                document.getElementById('displayID').innerText = user.uid;
                 
-                onValue(userRef, (snapshot) => {
-                    const data = snapshot.val();
+                // User Data चेक गर्ने र ६ अंकको ID नभए बनाउने
+                const snapshot = await get(userRef);
+                let userData = snapshot.val();
+                
+                if (!userData || !userData.numericID) {
+                    const newNumericID = generateNumericUID();
+                    await update(userRef, { 
+                        numericID: newNumericID,
+                        name: userData?.name || "Gamer",
+                        balance: userData?.balance || 0
+                    });
+                    document.getElementById('displayID').innerText = newNumericID;
+                } else {
+                    document.getElementById('displayID').innerText = userData.numericID;
+                }
+
+                // Real-time listener for UI
+                onValue(userRef, (snap) => {
+                    const data = snap.val();
                     if (data) {
                         const balance = data.balance || 0;
                         document.getElementById('displayName').innerText = data.name || "Gamer";
                         document.getElementById('referCount').innerText = data.referralCount || 0;
                         document.getElementById('referBalance').innerText = "रू " + balance.toFixed(2);
+                        document.getElementById('displayID').innerText = data.numericID || "------";
                     }
                 });
 
                 document.getElementById('shareBtn').onclick = () => {
-                    const uid = user.uid;
-                    const shareMsg = `नमस्कार! यो लुडो खेल्ने एप हो। मेरो कोड [ ${uid} ] हाल्नुहोला। \nलिङ्क: https://www.appcreator24.com/app3987878-l0etgh`;
+                    const numID = document.getElementById('displayID').innerText;
+                    const shareMsg = `नमस्कार! यो लुडो खेल्ने एप हो। मेरो Referral Code [ ${numID} ] हाल्नुहोला। \nलिङ्क: https://www.appcreator24.com/app3987878-l0etgh`;
                     if (navigator.share) {
                         navigator.share({ title: 'Ludo King Earn', text: shareMsg }).catch(console.error);
                     } else {
@@ -247,20 +266,28 @@
                     }
                 };
 
-                onValue(ref(db, 'transactions/' + user.uid), (snapshot) => {
+                // History Loader (Root बाट Filter गर्ने तपाईँको पुरानो सफल लजिक)
+                onValue(ref(db), (snapshot) => {
                     const hBody = document.getElementById('historyBody');
                     hBody.innerHTML = "";
-                    if(snapshot.exists()){
-                        snapshot.forEach((child) => {
-                            const val = child.val();
-                            const status = (val.status || "pending").toLowerCase();
-                            let statusClass = "status-pending";
-                            let statusText = "Pending";
-                            if(status === "approved" || status === "success") { statusClass = "status-approved"; statusText = "Approved"; }
-                            else if(status === "rejected") { statusClass = "status-rejected"; statusText = "Rejected"; }
-                            hBody.innerHTML += `<tr><td>${val.type || 'Deposit'}</td><td>रू ${val.amount}</td><td class="${statusClass}">${statusText}</td></tr>`;
+                    const data = snapshot.val();
+                    let found = false;
+
+                    if(data){
+                        Object.keys(data).forEach(key => {
+                            const val = data[key];
+                            if(val && val.uid === user.uid && (val.type === 'Withdraw' || val.type === 'Deposit')) {
+                                found = true;
+                                const status = (val.status || "pending").toLowerCase();
+                                let statusClass = "status-pending";
+                                let statusText = "Pending";
+                                if(status === "approved" || status === "success") { statusClass = "status-approved"; statusText = "Approved"; }
+                                else if(status === "rejected") { statusClass = "status-rejected"; statusText = "Rejected"; }
+                                hBody.innerHTML += `<tr><td>${val.type}</td><td>रू ${val.amount}</td><td class="${statusClass}">${statusText}</td></tr>`;
+                            }
                         });
-                    } else { hBody.innerHTML = "<tr><td colspan='3'>No history found</td></tr>"; }
+                    }
+                    if(!found) { hBody.innerHTML = "<tr><td colspan='3'>No history found</td></tr>"; }
                 });
 
                 document.getElementById('submitDepBtn').onclick = async () => {
@@ -277,8 +304,16 @@
                         const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
                         const result = await res.json();
                         if (result.success) {
-                            const depData = { uid: user.uid, amount: amt, status: 'pending', proofUrl: result.data.url, time: Date.now(), type: 'Deposit' };
-                            await push(ref(db, 'transactions/' + user.uid), depData);
+                            const depData = { 
+                                uid: user.uid, 
+                                numericID: document.getElementById('displayID').innerText,
+                                amount: amt, 
+                                status: 'pending', 
+                                proofUrl: result.data.url, 
+                                time: Date.now(), 
+                                type: 'Deposit' 
+                            };
+                            await push(ref(db), depData);
                             await push(ref(db, 'admin/deposits'), depData);
                             showToast("Deposit Request Sent!"); closeModal('depositModal');
                         }
@@ -294,20 +329,46 @@
                     if (!amt || !walletId) return showToast("Please fill all details!");
                     if (amt < 100) return showToast("Minimum withdrawal is Rs 100!");
 
-                    const userSnap = await get(ref(db, 'users/' + user.uid));
-                    const dbBalance = userSnap.val().balance || 0;
+                    const btn = document.getElementById('submitWitBtn');
+                    btn.disabled = true;
 
-                    if (dbBalance < amt) {
-                        return showToast("Insufficient balance! Current: Rs " + dbBalance);
-                    }
-
-                    const witData = { type: 'Withdraw', amount: amt, status: 'pending', method: method, wallet: walletId, uid: user.uid, time: Date.now() };
                     try {
-                        await push(ref(db, 'transactions/' + user.uid), witData);
+                        const result = await runTransaction(userRef, (userData) => {
+                            if (userData) {
+                                const currentBalance = userData.balance || 0;
+                                if (currentBalance < amt) return; 
+                                userData.balance = currentBalance - amt;
+                                return userData;
+                            }
+                            return userData;
+                        });
+
+                        if (!result.committed) {
+                            showToast("Insufficient balance!");
+                            btn.disabled = false;
+                            return;
+                        }
+
+                        const witData = { 
+                            type: 'Withdraw', 
+                            amount: amt, 
+                            status: 'pending', 
+                            method: method, 
+                            wallet: walletId, 
+                            uid: user.uid, 
+                            numericID: document.getElementById('displayID').innerText,
+                            time: Date.now() 
+                        };
+                        await push(ref(db), witData);
                         await push(ref(db, 'admin/withdraws'), witData);
+                        
                         showToast("Withdrawal request sent!"); 
                         closeModal('withdrawModal');
-                    } catch (err) { showToast("Error: " + err.message); }
+                    } catch (err) { 
+                        showToast("Error: " + err.message); 
+                    } finally {
+                        btn.disabled = false;
+                    }
                 };
 
                 document.getElementById('saveProfileBtn').onclick = () => {
