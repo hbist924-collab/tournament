@@ -30,9 +30,17 @@
         .menu-list { background: white; margin: 20px 15px; border-radius: 12px; overflow: hidden; }
         .menu-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; color: #333; text-decoration: none; cursor: pointer; }
         
+        /* Modals */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 90%; padding: 20px; border-radius: 15px; text-align: center; max-height: 85vh; overflow-y: auto; }
+        .modal-content { background: white; width: 90%; padding: 20px; border-radius: 15px; text-align: center; max-height: 85vh; overflow-y: auto; position: relative; }
         
+        /* Custom Toast (Replacer for Browser Alerts) */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 3000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 14px; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 100px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 100px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
         .qr-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 15px 0; padding-bottom: 10px; }
         .qr-card { min-width: 100%; scroll-snap-align: center; }
         .qr-card img { width: 180px; height: 180px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 8px; }
@@ -54,6 +62,8 @@
     </style>
 </head>
 <body>
+
+    <div id="toast">Message here...</div>
 
     <div class="profile-header">
         <div class="user-img-container">
@@ -194,13 +204,21 @@
         const db = getDatabase(app);
         const IMGBB_API_KEY = "7649636e77b828ae7fcc601bfdf43786";
 
+        // Custom Notification Function (No more Browser Alert)
+        window.showToast = (msg) => {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.className = "show";
+            setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        };
+
         window.openModal = (id) => document.getElementById(id).style.display = 'flex';
         window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
         window.copyUID = () => {
             const uid = document.getElementById('displayID').innerText;
             if(uid === "-------") return;
-            navigator.clipboard.writeText(uid).then(() => alert("UID Copied!"));
+            navigator.clipboard.writeText(uid).then(() => showToast("UID Copied!"));
         };
 
         onAuthStateChanged(auth, (user) => {
@@ -211,56 +229,46 @@
                 onValue(userRef, (snapshot) => {
                     const data = snapshot.val();
                     if (data) {
+                        const balance = data.balance || 0;
                         document.getElementById('displayName').innerText = data.name || "Gamer";
                         document.getElementById('referCount').innerText = data.referralCount || 0;
-                        document.getElementById('referBalance').innerText = "रू " + (data.balance || 0).toFixed(2);
+                        document.getElementById('referBalance').innerText = "रू " + balance.toFixed(2);
                     }
                 });
 
-                // --- Share Function with Referral Code ---
                 document.getElementById('shareBtn').onclick = () => {
                     const uid = user.uid;
-                    const shareMsg = `नमस्कार! यो एकदमै राम्रो लुडो खेल्ने एप हो। मेरो रेफर कोड [ ${uid} ] प्रयोग गरेर जोइन हुनुहोस् र पैसा कमाउनुहोस्। \nएप डाउनलोड लिङ्क: https://www.appcreator24.com/app3987878-l0etgh`;
-                    
+                    const shareMsg = `नमस्कार! यो लुडो खेल्ने एप हो। मेरो कोड [ ${uid} ] हाल्नुहोला। \nलिङ्क: https://www.appcreator24.com/app3987878-l0etgh`;
                     if (navigator.share) {
-                        navigator.share({
-                            title: 'Ludo King Earn',
-                            text: shareMsg,
-                        }).catch(console.error);
+                        navigator.share({ title: 'Ludo King Earn', text: shareMsg }).catch(console.error);
                     } else {
                         navigator.clipboard.writeText(shareMsg);
-                        alert("Share message copied to clipboard!");
+                        showToast("Message copied to clipboard!");
                     }
                 };
 
-                // --- Real-time Transaction History Logic ---
                 onValue(ref(db, 'transactions/' + user.uid), (snapshot) => {
                     const hBody = document.getElementById('historyBody');
                     hBody.innerHTML = "";
                     if(snapshot.exists()){
                         snapshot.forEach((child) => {
                             const val = child.val();
-                            const status = val.status ? val.status.toLowerCase() : "pending";
+                            const status = (val.status || "pending").toLowerCase();
                             let statusClass = "status-pending";
                             let statusText = "Pending";
-                            if(status === "approved" || status === "success") {
-                                statusClass = "status-approved";
-                                statusText = "Approved";
-                            } else if(status === "rejected") {
-                                statusClass = "status-rejected";
-                                statusText = "Rejected";
-                            }
+                            if(status === "approved" || status === "success") { statusClass = "status-approved"; statusText = "Approved"; }
+                            else if(status === "rejected") { statusClass = "status-rejected"; statusText = "Rejected"; }
                             hBody.innerHTML += `<tr><td>${val.type || 'Deposit'}</td><td>रू ${val.amount}</td><td class="${statusClass}">${statusText}</td></tr>`;
                         });
                     } else { hBody.innerHTML = "<tr><td colspan='3'>No history found</td></tr>"; }
                 });
 
-                // Deposit Logic
                 document.getElementById('submitDepBtn').onclick = async () => {
                     const amt = document.getElementById('depAmount').value;
                     const fileInput = document.getElementById('depProof');
-                    if (amt < 50) return alert("Min Deposit Rs 50!");
-                    if (!fileInput.files[0]) return alert("Select Screenshot!");
+                    if (amt < 50) return showToast("Min Deposit Rs 50!");
+                    if (!fileInput.files[0]) return showToast("Select Screenshot!");
+                    
                     const btn = document.getElementById('submitDepBtn');
                     btn.innerText = "UPLOADING..."; btn.disabled = true;
                     try {
@@ -272,31 +280,43 @@
                             const depData = { uid: user.uid, amount: amt, status: 'pending', proofUrl: result.data.url, time: Date.now(), type: 'Deposit' };
                             await push(ref(db, 'transactions/' + user.uid), depData);
                             await push(ref(db, 'admin/deposits'), depData);
-                            alert("Request Sent!"); closeModal('depositModal');
+                            showToast("Deposit Request Sent!"); closeModal('depositModal');
                         }
-                    } catch (e) { alert("Upload Failed!"); }
+                    } catch (e) { showToast("Upload Failed!"); }
                     finally { btn.innerText = "SUBMIT DEPOSIT"; btn.disabled = false; }
                 };
 
-                // Withdraw Logic
-                document.getElementById('submitWitBtn').onclick = () => {
-                    const amt = document.getElementById('witAmount').value;
-                    const method = document.getElementById('witMethod').value;
+                document.getElementById('submitWitBtn').onclick = async () => {
+                    const amt = parseFloat(document.getElementById('witAmount').value);
                     const walletId = document.getElementById('witID').value;
-                    if (amt < 100) return alert("Min Withdraw Rs 100!");
+                    const method = document.getElementById('witMethod').value;
+
+                    if (!amt || !walletId) return showToast("Please fill all details!");
+                    if (amt < 100) return showToast("Minimum withdrawal is Rs 100!");
+
+                    const userSnap = await get(ref(db, 'users/' + user.uid));
+                    const dbBalance = userSnap.val().balance || 0;
+
+                    if (dbBalance < amt) {
+                        return showToast("Insufficient balance! Current: Rs " + dbBalance);
+                    }
+
                     const witData = { type: 'Withdraw', amount: amt, status: 'pending', method: method, wallet: walletId, uid: user.uid, time: Date.now() };
-                    push(ref(db, 'transactions/' + user.uid), witData);
-                    push(ref(db, 'admin/withdraws'), witData);
-                    alert("Withdraw Request Sent!"); closeModal('withdrawModal');
+                    try {
+                        await push(ref(db, 'transactions/' + user.uid), witData);
+                        await push(ref(db, 'admin/withdraws'), witData);
+                        showToast("Withdrawal request sent!"); 
+                        closeModal('withdrawModal');
+                    } catch (err) { showToast("Error: " + err.message); }
                 };
 
                 document.getElementById('saveProfileBtn').onclick = () => {
                     const name = document.getElementById('newName').value;
-                    if (name) update(userRef, { name: name }).then(() => closeModal('editModal'));
+                    if (name) update(userRef, { name: name }).then(() => { showToast("Name Updated!"); closeModal('editModal'); });
                 };
 
                 document.getElementById('logoutBtn').onclick = () => {
-                    if(confirm("Logout?")) signOut(auth).then(() => window.location.href = "index.html");
+                    signOut(auth).then(() => window.location.href = "index.html");
                 };
             } else { window.location.href = "index.html"; }
         });
